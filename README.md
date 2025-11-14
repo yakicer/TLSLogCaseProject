@@ -95,7 +95,7 @@ UI
 `cd DataAccess
 dotnet ef database update` 
 
-**Not:** Güvenli senaryoda admin kullanıcı adama işlemleri sadece api tarafına erişim sağlanarak yapılmaktadır. İlk kullanıcı ataması sonrasında isteğe bağlı ui tarafına kullanıcı ve rol işlemleri için kapı açılabilir ancak tavsiye edilmemektedir. Bu yüzden ilk kullanıcı ataması yapabilmek için proje içerisindeki `Web.Api AuthController` kısmında bulunan  `[Authorize]` attributelarını kaldırıp localden ilk kullanıcı eklemesi, rol ekleme ve rol atama işlemlerini gerçekleştirebilirsiniz. Bu işlemler sonrasında mevcut yapıda `Administrator` rolü ile tam erişim yetkisine rahip olabilirsiniz. 
+**Not:** Güvenli senaryoda admin kullanıcı atama işlemleri sadece api tarafına erişim sağlanarak yapılmaktadır. İlk kullanıcı ataması sonrasında isteğe bağlı ui tarafına kullanıcı ve rol işlemleri için kapı açılabilir ancak tavsiye edilmemektedir. Bu yüzden ilk kullanıcı ataması yapabilmek için proje içerisindeki `Web.Api AuthController` kısmında bulunan  `[Authorize]` attributelarını kaldırıp localden ilk kullanıcı eklemesi, rol ekleme ve rol atama işlemlerini gerçekleştirebilirsiniz. Bu işlemler sonrasında mevcut yapıda `Administrator` rolü ile tam erişim yetkisine rahip olabilirsiniz. 
 
 ### 4. Projeyi Çalıştır
 
