@@ -1,0 +1,309 @@
+﻿@page "/landingpage"
+@using Web.Blazor.Models
+@using Web.Blazor.Models.Enums
+@using Web.Blazor.Pages.Components
+@using Web.Blazor.Services.ApiServices
+@inject DialogService DialogService
+@inject ILandingService LandingService
+@inject IToastService ToastService
+@inject TooltipService tooltipService
+@inherits BaseComponent
+
+<PageTitle>Karşılama Sayfası Yönetimi</PageTitle>
+
+<RadzenText Text="Karşılama Sayfası Yönetimi" TextStyle="TextStyle.DisplayH5" Class="mb-2">
+</RadzenText>
+<RadzenText class="align-self-center mb-0" TextStyle="TextStyle.Caption">
+    *sayfa açıklamasını görüntülemek için kaydın solundaki ok işaretine tıklayınız.
+</RadzenText>
+<div class="d-flex justify-content-end align-items-center mb-2 px-2">
+    <RadzenButton Icon="add" Disabled="isLoading" Text="Yeni Sayfa Ekle" Click="@(()=> OpenDialog(null))" />
+</div>
+
+@*     Görsellerin üzerine tıklanınca modal ile açma işlemi ekle.  *@
+<RadzenDataGrid @ref="landingGrid" Data="landingModel" GridLines="DataGridGridLines.Horizontal" TItem="LandingModel" Responsive="true"
+                AllowFiltering="true" FilterMode="FilterMode.Advanced" Style="border-radius:7px" AllowColumnResize="false" ColumnWidth="10rem"
+                LogicalFilterOperator="LogicalFilterOperator.Or" OrOperatorText="Veya"
+                AndOperatorText="Ve" ApplyFilterText="Uygula" ClearFilterText="Temizle" EqualsText="Eşittir"
+                NotEqualsText="Eşit değildir" LessThanOrEqualsText="Daha az veya eşit" LessThanText="Daha az"
+                GreaterThanOrEqualsText="Daha fazla veya eşit" GreaterThanText="Daha fazla" EndsWithText="İle biter"
+                FilterText="Filtrele" StartsWithText="İle başlar" IsEmptyText="Veri boşsa" IsNotEmptyText="Veri boş değilse"
+                IsNullText="Veri yoksa" IsNotNullText="Veri varsa" ContainsText="İçerir" DoesNotContainText="İçermez"
+                AllowSorting="true" EnumFilterSelectText="Seçiniz" PagingSummaryFormat="{1} sayfadan {0}. sayfa (Toplam {2} adet kayıt)"
+                AllowPaging="true" PageSize="@((int)defaultPageSize)" PagerHorizontalAlign="HorizontalAlign.Right" ExpandMode="DataGridExpandMode.Single"
+                ShowPagingSummary="true" ShowHeader="true"
+                class="rz-shadow-1" AllowAlternatingRows="false">
+    <HeaderTemplate>
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="Kayıt sayısı: " Component="MaxPageSize" Style="align-self:center" />
+            <RadzenDropDown @bind-Value=@defaultPageSize Data="@(Enum.GetValues(typeof(PageSizes)))" Name="MaxPageSize" />
+            <RadzenToggleButton Text="@(isImageVisible ? "Görselleri Gizle" : "Görselleri Göster" )"
+                                ToggleButtonStyle="ButtonStyle.Success" ButtonStyle="ButtonStyle.Dark"
+                                Icon="visibility_off" ToggleIcon="visibility"
+                                Click=@(() => isImageVisible = !isImageVisible) />
+        </RadzenStack>
+    </HeaderTemplate>
+    <EmptyTemplate>
+        @if (isLoading)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="3" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Style="margin: 2rem;color: lightgrey;text-align: center;">
+                <i style="font-size:36px; animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+                <span>
+                    Yükleniyor...
+                </span>
+            </RadzenStack>
+        }
+        else
+        {
+            <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">Gösterilecek kayıt bulunamadı.</p>
+        }
+    </EmptyTemplate>
+    <Template Context="item">
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap">
+            <RadzenText class="align-self-center mb-0" Text="Detay Bilgiler:" TextStyle="TextStyle.Subtitle2" Style="font-weight:bold">
+            </RadzenText>
+            <RadzenText class="align-self-center mb-0" Text="@item.Description" TextStyle="TextStyle.Subtitle2" style="text-wrap-mode:wrap;">
+            </RadzenText>
+        </RadzenStack>
+    </Template>
+    <Columns>
+        <RadzenDataGridColumn Visible="@isImageVisible" TItem="LandingModel" Frozen Sortable="false" TextAlign="TextAlign.Center" Width="7rem" Filterable="false" Title="Sayfa Arkaplan Görseli">
+            <Template Context="data">
+                <RadzenStack Gap="0" Orientation="Orientation.Horizontal" class="m-0 p-0" JustifyContent="JustifyContent.Center">
+                    <RadzenImage Path="@(baseUrl + data.ThumbImagePath)" class="rz-gravatar rz-gravatar-custom" />
+                </RadzenStack>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="LandingModel" Width="9rem" Property="Title" Title="Sayfa Başlığı" />
+        <RadzenDataGridColumn TItem="LandingModel" Width="9rem" Property="SubTitle" Title="Sayfa Alt Başlığı" />
+        <RadzenDataGridColumn TItem="LandingModel" TextAlign="TextAlign.Center" Property="Order" Filterable="false" Width="7rem" Title="Sayfa Sırası" />
+        <RadzenDataGridColumn TItem="LandingModel" TextAlign="TextAlign.Center" Width="7rem" Sortable="false" Filterable="false" Title="Sıralama">
+            <Template Context="data">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center">
+                    <RadzenButton Icon="keyboard_arrow_up" Click="@(() => MoveUp(data))" Disabled="@(IsFirst(data) || orderLoading)" />
+                    <RadzenButton Icon="keyboard_arrow_down" Click="@(() => MoveDown(data))" Disabled="@(IsLast(data) || orderLoading)" />
+                </RadzenStack>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="LandingModel" TextAlign="TextAlign.Center" Frozen FrozenPosition="FrozenColumnPosition.Right" Width="7rem" Sortable="false" Filterable="false" Title="İşlemler">
+            <Template Context="item">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Filled" MouseEnter="@(args => ShowTooltip(args,"Sayfayı Düzenle"))" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(()=> OpenDialog(item))" aria-label="Cancel" />
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Filled" MouseEnter="@(args => ShowTooltip(args,"Sayfayı Sil"))" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="() => Delete(item)" aria-label="Delete" />
+                </RadzenStack>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    RadzenDataGrid<LandingModel> landingGrid;
+    private LandingModel editLandingModel = new();
+    private List<LandingModel> landingModel = [];
+    private PageSizes defaultPageSize = PageSizes.Five;
+    private bool isImageVisible = true;
+    private bool isLoading = true;
+    private bool isEdit = false;
+    private string baseUrl = string.Empty;
+    private int newObjectOrder = 0;
+    private bool orderLoading = false;
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        baseUrl = base.SetBaseUrl();
+        newObjectOrder = landingModel.Max(i => i.Order) + 1;
+
+    }
+
+    void ShowTooltip(ElementReference elementReference, string text) => tooltipService.Open(elementReference, text, null);
+
+    async Task OpenDialog(LandingModel? landing)
+    {
+        isEdit = landing == null ? true : false;
+        Tuple<LandingModel, int> landingObject = new Tuple<LandingModel, int>(landing!, newObjectOrder);
+        var result = await DialogService.OpenAsync<LandingCrudComponent>(
+        landing == null ? "Yeni Sayfa Ekle" : "Seçili Sayfayı Düzenle",
+    new Dictionary<string, object>() { { "LandingObject", landingObject! } },
+    new DialogOptions { Width = "700px", CloseDialogOnOverlayClick = false, AutoFocusFirstElement = false, CloseDialogOnEsc = false }
+        );
+
+        if (result is true)
+        {
+            if (isEdit)
+                ToastService.ShowSuccess("Sayfa başarıyla eklendi!");
+            else
+                ToastService.ShowSuccess("Sayfa başarıyla güncellendi!");
+
+            await LoadData();
+            await landingGrid.RefreshDataAsync();
+            newObjectOrder = landingModel.Max(i => i.Order) + 1;
+
+        }
+    }
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            landingModel = await LandingService.GetAllAsync();
+            landingModel = landingModel.OrderBy(x => x.Order).ToList();
+            landingModel = new List<LandingModel>(landingModel); // referans değiştir
+            await landingGrid.Reload();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        isLoading = false;
+        isEdit = false;
+    }
+
+    private async void Delete(LandingModel model)
+    {
+
+        var title = $"Sayfa: {model.Title}";
+
+        var result = await DialogService.OpenAsync(title, ds =>
+    @<RadzenStack Gap="1.5rem">
+        <RadzenText Text="Sayfayı silmek istediğinize emin misiniz ?" TextStyle="TextStyle.Body1" />
+        <RadzenText Text="NOT: Bu işlem geri alınamaz!" TextStyle="TextStyle.Subtitle2" class="text-danger" />
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceAround">
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Sil" Click="() => ds.Close(true)" Style="width: 80px;" ButtonStyle="ButtonStyle.Secondary" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Vazgeç" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Base" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+    ,
+    new DialogOptions()
+    {
+        Width = "400px",
+        ShowClose = false
+    });
+
+        if (result == true)
+        {
+            base.ShowLoader();
+            try
+            {
+                var response = await LandingService.DeleteLandingAsync(model.Id);
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError($"Sayfa silinirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Kodu: {response.StatusCode}");
+                    return;
+                }
+                else
+                {
+                    landingModel.Remove(model);
+                    await NormalizeOrder(landingModel);
+                    base.HideLoader();
+                    ToastService.ShowSuccess("Sayfa başarıyla silindi !", settings => { settings.Timeout = 2; });
+                    newObjectOrder = landingModel.Max(i => i.Order) + 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                base.HideLoader();
+                ToastService.ShowError($"Sayfa silinirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Mesajı: {ex.Message}");
+            }
+        }
+    }
+    //TODO: Bir önceki veya sonraki itemin de orderının değişmesi lazım.
+    private async Task MoveUp(LandingModel item)
+    {
+        // TODO: api tarafına sadece order ı güncelleyen hafif bir method yaz ve move methodlarına ekle !
+        // var response = await LandingService.UpdateLandingAsync(item.Id);
+        var currentIndex = landingModel.FindIndex(x => x.Id == item.Id);
+        if (currentIndex > 0)
+        {
+            orderLoading = true;
+            var prevItem = landingModel[currentIndex - 1];
+            (item.Order, prevItem.Order) = (prevItem.Order, item.Order);
+
+            landingModel = landingModel.OrderBy(x => x.Order).ToList();
+            try
+            {
+                var response = await LandingService.UpdateLandingOrderAsync(item.Id, item.Order);
+                var responsePrev = await LandingService.UpdateLandingOrderAsync(prevItem.Id, prevItem.Order);
+
+                if (!response.IsSuccessStatusCode || !responsePrev.IsSuccessStatusCode)
+                {
+                    orderLoading = false;
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError($"Sıralama değişirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Kodu: {response.StatusCode}");
+                    return;
+                }
+                else
+                {
+                    await landingGrid.Reload();
+                    orderLoading = false;
+                    ToastService.ShowSuccess($"Sıralama başarıyla değiştirildi! Yeni sıralama {item.Order}", settings => { settings.Timeout = 2; });
+                }
+            }
+            catch (Exception ex)
+            {
+                orderLoading = false;
+                ToastService.ShowError($"Sıralama değişirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Mesajı: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task MoveDown(LandingModel item)
+    {
+        var currentIndex = landingModel.FindIndex(x => x.Id == item.Id);
+        if (currentIndex < landingModel.Count - 1)
+        {
+            orderLoading = true;
+            var nextItem = landingModel[currentIndex + 1];
+            (item.Order, nextItem.Order) = (nextItem.Order, item.Order);
+
+            landingModel = landingModel.OrderBy(x => x.Order).ToList();
+            try
+            {
+                var response = await LandingService.UpdateLandingOrderAsync(item.Id, item.Order);
+                var responseNext = await LandingService.UpdateLandingOrderAsync(nextItem.Id, nextItem.Order);
+
+                if (!response.IsSuccessStatusCode || !responseNext.IsSuccessStatusCode)
+                {
+                    orderLoading = false;
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError($"Sıralama değişirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Kodu: {response.StatusCode}");
+                    return;
+                }
+                else
+                {
+                    orderLoading = false;
+                    await landingGrid.Reload();
+                    ToastService.ShowSuccess($"Sıralama başarıyla değiştirildi! Yeni sıralama {item.Order}", settings => { settings.Timeout = 2; });
+                }
+            }
+            catch (Exception ex)
+            {
+                orderLoading = false;
+                ToastService.ShowError($"Sıralama değişirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Mesajı: {ex.Message}");
+            }      
+        }
+    }
+
+    private async Task NormalizeOrder(List<LandingModel> model)
+    {
+        int order = 1;
+
+        foreach (var item in model.OrderBy(x => x.Order))
+        {
+            item.Order = order++;
+        }
+
+        landingModel = new List<LandingModel>(landingModel); // referans değiştir
+        await landingGrid.Reload();
+        StateHasChanged();
+    }
+
+    private bool IsFirst(LandingModel item) => landingModel.OrderBy(x => x.Order).First().Id == item.Id;
+    private bool IsLast(LandingModel item) => landingModel.OrderBy(x => x.Order).Last().Id == item.Id;
+}

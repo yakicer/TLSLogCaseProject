@@ -1,0 +1,336 @@
+﻿@using Web.Blazor.Models
+@using Web.Blazor.Models.Enums
+@using Web.Blazor.Models.RequestModel
+@using Web.Blazor.Services.ApiServices
+@using Web.Blazor.Services.Interface
+@inject ITeamService TeamService
+@inject DialogService DialogService
+@inject IToastService ToastService
+@inject IFileUploadService FileUploadService
+
+@inherits BaseComponent
+
+
+<RadzenTemplateForm Data="@employeeModel" TItem="EmployeeRequestModel" onclose="@( () => SetDefaults )" Submit="@(() => HandleSubmit(employeeId))" InvalidSubmit=@OnInvalidSubmit>
+    <div class="grid gap-3 p-3">
+        <RadzenStack>
+            <RadzenFormField Text="Çalışan Adı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="Name" @bind-Value="employeeModel.Name" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Name" Text="Çalışan Adı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Çalışan Soyadı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="SurName" @bind-Value="employeeModel.SurName" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="SurName" Text="Çalışan Soyadı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Doğum Tarihi">
+                <ChildContent>
+                    <RadzenDatePicker Change="@( () => isFormChanged = true)" DateFormat="dd/MM/yyyy" Name="BirthDate" @bind-Value="employeeModel.BirthDate" ShowCalendarWeek />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="BirthDate" Text="Doğum Tarihi alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Çalışan Ünvanı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="Title" @bind-Value="employeeModel.Title" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Title" Text="Çalışan Ünvanı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField required="false" Text="Detay *(varsa)">      
+                    <RadzenTextArea Rows="4" Change="@( () => isFormChanged = true)" Name="Description" @bind-Value="employeeModel.Description" />
+            </RadzenFormField>
+            <RadzenFormField Text="Departman"> 
+                    <RadzenDropDown Change="@( () => isFormChanged = true)" Name="DepartmentType" @bind-Value="employeeModel.DepartmentType" Data="@(Enum.GetValues(typeof(DepartmentTypes)).Cast<Enum>())" />
+            </RadzenFormField>
+        </RadzenStack>
+        <hr />
+        <RadzenStack Orientation="Orientation.Vertical" Gap="0">
+            <div class="py-2">
+                <label for="select-mainfile-hidden" class="rz-button rz-button-md rz-variant-filled rz-base rz-shade-default align-self-center">
+                    @if (mainImageBusy)
+                    {
+                        <i style="animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+                        <span>&nbsp;YÜKLENİYOR...</span>
+                    }
+                    else
+                    {
+                        <i class="notranslate rz-button-icon-left rzi"><!--!-->@uploadIcon</i>
+                        <span>&nbsp;@selectedFile</span>
+                    }
+                </label>
+                <InputFile hidden id="select-mainfile-hidden" OnChange="OnMainImageChange" disabled="@mainImageBusy" accept="image/*" />
+            </div>
+            @if (!string.IsNullOrEmpty(ThumbImagePath))
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Çalışan görseli
+                        </RadzenText>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flew-row align-self-center justify-content-center">
+                            <RadzenRow RowGap="3">
+                                <div class="position-relative">
+                                    <img src="@( baseUrl + ThumbImagePath)" class="project_thumb_image mx-auto d-block" />
+                                    <RadzenButton Click=@(() => RemoveMainImage()) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                </div>
+                            </RadzenRow>
+                        </div>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+            @if (mainImage.LoadedFile != null && !string.IsNullOrEmpty(mainImage.LoadedFile?.Base64Content))
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Seçili görsel
+                        </RadzenText>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flew-row align-self-center justify-content-center">
+                            <RadzenRow RowGap="3">
+                                <div class="position-relative">
+                                    <img src="@mainImage.LoadedFile?.Base64Content" class="project_thumb_image mx-auto d-block" />
+                                    <RadzenButton Click=@(() => RemoveMainImage()) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                </div>
+                            </RadzenRow>
+                        </div>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Toplam Boyut : <b>@((mainImage.FileContent.Length / (1024 * 1024.0d)).ToString("0.##")) Mb</b>
+                        </RadzenText>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+        </RadzenStack>
+        <RadzenButton class="mt-3" ButtonType="ButtonType.Submit" Text="Kaydet" />
+    </div>
+</RadzenTemplateForm>
+
+
+@code {
+    [Parameter] public EmployeeModel? ExistingEmployee { get; set; }
+
+    private string selectedFile = "ANA GÖRSEL SEÇİNİZ";
+    UploadFileModel mainImage = new();
+    string uploadIcon = "upload";
+    private bool isEdit => ExistingEmployee != null;
+    private bool canEditMainImage = false;
+    private string? MainImagePath = string.Empty;
+    private string? ThumbImagePath = string.Empty;
+    bool mainImageBusy = false;
+    private Guid employeeId = Guid.Empty;
+    private bool isFormChanged = false;
+    private EmployeeRequestModel employeeModel = new();
+    private string baseUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        baseUrl = base.SetBaseUrl();
+        SetDefaults();
+
+        if (isEdit)
+        {
+            isFormChanged = false;
+            employeeModel = new EmployeeRequestModel
+                {
+                    Name = ExistingEmployee!.Name,
+                    SurName = ExistingEmployee!.SurName,
+                    Title = ExistingEmployee!.Title,
+                    Description = ExistingEmployee!.Description,
+                    BirthDate = ExistingEmployee!.BirthDate,
+                    DepartmentType = ExistingEmployee!.DepartmentType,
+                };
+            employeeId = ExistingEmployee.Id;
+            MainImagePath = ExistingEmployee.MainImagePath;
+            ThumbImagePath = ExistingEmployee.ThumbImagePath;
+            if (!string.IsNullOrEmpty(ExistingEmployee.ThumbImagePath))
+            {
+                selectedFile = $"DEĞİŞTİR";
+                uploadIcon = "cached";
+            }
+        }
+    }
+
+    private async Task OnMainImageChange(InputFileChangeEventArgs e)
+    {
+        mainImageBusy = true;
+        isFormChanged = true;
+        if (isEdit && !canEditMainImage)
+        {
+            MainImagePath = string.Empty;
+            ThumbImagePath = string.Empty;
+            canEditMainImage = true;
+        }
+        else
+            mainImage = new();
+
+        var file = e.GetMultipleFiles().FirstOrDefault();
+        if (file != null)
+        {
+            try
+            {
+                var result = await FileUploadService.UploadFile(file);
+
+                if (result != null)
+                {
+                    mainImage = result;
+                    selectedFile = $"DEĞİŞTİR";
+                    uploadIcon = "cached";
+                }
+
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Dosya yüklenirken bir hata oluştu: {ex.Message}");
+                mainImageBusy = false;
+            }
+            mainImageBusy = false;
+        }
+        else
+        {
+            ToastService.ShowError($"Dosya yüklenirken bir hata oluştu. Lütfen dosyayı kontrol edip tekrar deneyiniz.");
+            mainImageBusy = false;
+        }
+    }
+
+    private void RemoveMainImage()
+    {
+        isFormChanged = true;
+        if (isEdit && !canEditMainImage)
+        {
+            MainImagePath = string.Empty;
+            ThumbImagePath = string.Empty;
+            canEditMainImage = true;
+        }
+        else
+        {
+            mainImage = new();
+        }
+        selectedFile = $"ANA GÖRSEL SEÇİNİZ";
+        uploadIcon = "upload";
+    }
+
+
+
+    private void SetDefaults()
+    {
+        mainImage = new();
+        selectedFile = $"ANA GÖRSEL SEÇİNİZ";
+        uploadIcon = "upload";
+        canEditMainImage = false;
+    }
+
+    private void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        ToastService.ShowError("Eksik veya hatalı alanlar mevcut!");
+    }
+
+    private async Task HandleSubmit(Guid? id = default)
+    {
+        base.ShowLoader();
+        try
+        {
+            if (isEdit)
+            {
+                if (!isFormChanged)
+                {
+                    base.HideLoader();
+                    ToastService.ShowWarning("Formda herhangi bir değişiklik yapılmadı !");
+                    return;
+                }
+                if (id == null || id == Guid.Empty)
+                {
+                    base.HideLoader();
+                    ToastService.ShowError("İlgili çalışan bulunamadı. Lütfen sayfayı yenileyip tekrar deneyiniz.");
+                    return;
+                }
+            }
+
+            using var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(employeeModel.Name ?? ""), "Name");
+            formData.Add(new StringContent(employeeModel.SurName ?? ""), "SurName");
+            formData.Add(new StringContent(employeeModel.Title ?? ""), "Title");
+            formData.Add(new StringContent(employeeModel.Description ?? ""), "Description");
+            formData.Add(new StringContent(employeeModel.BirthDate.ToString() ?? ""), "BirthDate");
+            formData.Add(new StringContent(employeeModel.DepartmentType.ToString() ?? ""), "DepartmentType");
+
+            if (isEdit ? (canEditMainImage && mainImage.FileContent == null) : mainImage.FileContent == null)
+            {
+                base.HideLoader();
+                ToastService.ShowWarning("Çalışan görseli eklenmesi zorunludur");
+                return;
+            }
+
+            if (mainImage.FileContent != null)
+            {
+                var fileContent = new ByteArrayContent(mainImage.FileContent);
+                fileContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
+                    {
+                        Name = "\"MainImage\"",
+                        FileName = $"\"{mainImage.FileName}\""
+                    };
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mainImage.ContentType);
+                formData.Add(fileContent, "MainImage", mainImage.FileName);
+            }
+
+            if (isEdit)
+            {
+                var response = await TeamService.UpdateEmployeeAsync(employeeId, formData);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    SetDefaults();
+
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError(errorMessage);
+                    return;
+                }
+                else
+                {
+                    DialogService.Close(true);
+                    base.HideLoader();
+                }
+            }
+            else
+            {
+                var response = await TeamService.CreateEmployeeAsync(formData);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    SetDefaults();
+
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError(errorMessage);
+                    return;
+                }
+                else
+                {
+                    DialogService.Close(true);
+                    base.HideLoader();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            base.HideLoader();
+            SetDefaults();
+            ToastService.ShowError(ex.Message);
+        }
+    }
+}

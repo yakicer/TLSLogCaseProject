@@ -1,0 +1,591 @@
+﻿@using Web.Blazor.Models
+@using Web.Blazor.Models.Enums
+@using Web.Blazor.Models.RequestModel
+@using Web.Blazor.Services.ApiServices
+@using Web.Blazor.Services.Interface
+@inject IProjectService ProjectApi
+@inject DialogService DialogService
+@inject IToastService ToastService
+@inject IFileUploadService FileUploadService
+@inherits BaseComponent
+
+<RadzenTemplateForm Data="@projectModel" TItem="ProjectRequestMultipartModel" onclose="@( () => SetDefaults )" Submit="@(() => HandleSubmit(ProjectId))" InvalidSubmit=@OnInvalidSubmit>
+    <div class="grid gap-3 p-3">
+        <RadzenStack>
+            <RadzenFormField Text="Proje Adı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="ProjectName" @bind-Value="projectModel.Name" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="ProjectName" Text="Proje Adı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Proje Türü">
+                <RadzenDropDown Change="@( () => isFormChanged = true)" Name="ProjectType" @bind-Value="projectModel.ProjectType" Data="@(Enum.GetValues(typeof(SolutionTypes)).Cast<Enum>())" />
+            </RadzenFormField>
+            <RadzenFormField Text="Müşteri Adı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="ClientName" @bind-Value="projectModel.ClientName" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="ClientName" Text="Müşteri Adı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Mimar Adı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="ArchitectName" @bind-Value="projectModel.ArchitectName" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="ArchitectName" Text="Mimar Adı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Lokasyon">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="Location" @bind-Value="projectModel.Location" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Location" Text="Lokasyon alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+
+            <RadzenFormField Text="Bitiş Tarihi">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="Year" @bind-Value="projectModel.Year" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Year" Text="Proje adı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <div class="rz-p-2 rz-text-align-left">
+                <RadzenLabel Text="Proje Durumu" Component="CheckBox2" class="rz-mr-4" />
+                <RadzenToggleButton @bind-Value=@projectModel.IsCompleted
+                                    Change=@(OnToggleChange)
+                                    Text="@(projectModel.IsCompleted ? "Tamamlandı" : "Devam Ediyor" )" Name="CheckBox2"
+                                    ButtonStyle="ButtonStyle.Info"
+                                    Icon="resume" ToggleIcon="done_all"
+                                    ToggleButtonStyle="ButtonStyle.Success" ToggleShade="Shade.Light" Style="outline:none" />
+            </div>
+        </RadzenStack>
+        <hr />
+        <RadzenStack Orientation="Orientation.Vertical" Gap="0">
+            <div class="py-2">
+                <label for="select-mainfile-hidden" class="rz-button rz-button-md rz-variant-filled rz-base rz-shade-default align-self-center">
+                    @if (mainImageBusy)
+                    {
+                        <i style="animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+                        <span>&nbsp;YÜKLENİYOR...</span>
+                    }
+                    else
+                    {
+                        <i class="notranslate rz-button-icon-left rzi"><!--!-->@uploadIcon</i>
+                        <span>&nbsp;@selectedFile</span>
+                    }
+                </label>
+                <InputFile hidden id="select-mainfile-hidden" OnChange="OnMainImageChange" disabled="@mainImageBusy" accept="image/*" />
+            </div>
+            @if (!string.IsNullOrEmpty(ThumbImagePath))
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Proje ana görseli
+                        </RadzenText>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flew-row align-self-center justify-content-center">
+                            <RadzenRow RowGap="3">
+                                <div class="position-relative">
+                                    <img src="@( baseUrl + ThumbImagePath)" class="project_thumb_image mx-auto d-block" />
+                                    <RadzenButton Click=@(() => RemoveMainImage()) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                </div>
+                            </RadzenRow>
+                        </div>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+            @if (mainImage.LoadedFile != null && !string.IsNullOrEmpty(mainImage.LoadedFile?.Base64Content))
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Seçili görsel
+                        </RadzenText>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flew-row align-self-center justify-content-center">
+                            <RadzenRow RowGap="3">
+                                <div class="position-relative">
+                                    <img src="@mainImage.LoadedFile?.Base64Content" class="project_thumb_image mx-auto d-block" />
+                                    <RadzenButton Click=@(() => RemoveMainImage()) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                </div>
+                            </RadzenRow>
+                        </div>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Toplam Boyut : <b>@((mainImage.FileContent.Length / (1024 * 1024.0d)).ToString("0.##")) Mb</b>
+                        </RadzenText>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+        </RadzenStack>
+        <hr />
+        <RadzenStack Orientation="Orientation.Vertical">
+            <div class="mb-3">
+                <label for="select-additionalfiles-hidden" class="rz-button rz-button-md rz-variant-filled rz-base rz-shade-default">
+                    @if (additionalImageBusy)
+                    {
+                        <i style="animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+
+                        <span>&nbsp;YÜKLENİYOR...</span>
+
+                    }
+                    else
+                    {
+                        <i class="notranslate rz-button-icon-left rzi"><!--!-->@uploadIconAdditional</i>
+                        <span>&nbsp;@selectedFiles</span>
+                    }
+
+                </label>
+                <InputFile hidden id="select-additionalfiles-hidden" OnChange="OnAdditionalImagesChange" disabled="@additionalImageBusy" accept="image/*" multiple />
+            </div>
+            @if (ExistingImages.Any())
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Mevcut ek görseller <b>(@(ExistingImages.Count))</b>
+                        </RadzenText>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flex-wrap gap-2 mt-2 justify-content-start rz-mx-auto">
+                            @foreach (var file in ExistingImages)
+                            {
+                                if (!string.IsNullOrEmpty(file.ThumbImagePath))
+                                {
+                                    <RadzenRow RowGap="3">
+                                        <div class="position-relative">
+                                            <img src="@( baseUrl + file.ThumbImagePath)" class="project_thumb_image" />
+                                            <RadzenButton Click=@(() => RemoveExistingAdditionalImage(file.Id)) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                        </div>
+                                    </RadzenRow>
+                                }
+                            }
+                        </div>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+
+            @if (additionalImages.Any())
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Seçili görseller <b>(@(additionalImages.Count))</b>
+                        </RadzenText>
+                    </RadzenCard>
+                    <span hidden>@(additionalImagesTotalSize = 0)</span>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flex-wrap gap-2 mt-2 justify-content-start rz-mx-auto">
+                            @foreach (var file in additionalImages)
+                            {
+                                if (file.LoadedFile != null)
+                                {
+                                    <span hidden>@(additionalImagesTotalSize += file.FileContent.Length)</span>
+                                    <RadzenRow RowGap="3">
+                                        <div class="position-relative">
+                                            <img src="@file.LoadedFile?.Base64Content" class="project_thumb_image" />
+                                            <RadzenButton Click=@(() => RemoveAdditionalImage(file)) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                        </div>
+                                    </RadzenRow>
+                                }
+                            }
+                        </div>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-0 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            @{
+                                var totalSize = (additionalImagesTotalSize / (1024 * 1024.0d));
+                            }
+                            Toplam Boyut : <b>@totalSize.ToString("0.##") Mb</b>
+                        </RadzenText>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+        </RadzenStack>
+        <hr />
+        <RadzenButton class="mt-3" ButtonType="ButtonType.Submit" Text="Kaydet" />
+    </div>
+</RadzenTemplateForm>
+
+@code {
+
+    [Parameter] public ProjectModel? ExistingProject { get; set; }
+    List<ProjectImageModel> ExistingImages = new();
+    private List<Guid> RemovedImageIds = new();
+
+    private string selectedFiles = "EK GÖRSELLERİ SEÇİNİZ";
+    private string selectedFile = "ANA GÖRSEL SEÇİNİZ";
+    private int maxAllowedFiles = 10;
+    private List<UploadFileModel> additionalImages = new();
+    UploadFileModel mainImage = new();
+    string uploadIcon = "upload";
+    string uploadIconAdditional = "upload";
+    long additionalImagesTotalSize = 0;
+    private bool isEdit => ExistingProject != null;
+    private bool canEditMainImage = false;
+    private bool canEditAdditionalMainImage = false;
+    private string? MainImagePath = string.Empty;
+    private string? ThumbImagePath = string.Empty;
+    bool mainImageBusy = false;
+    bool additionalImageBusy = false;
+    private Guid ProjectId = Guid.Empty;
+    private bool isFormChanged = false;
+    private ProjectRequestMultipartModel projectModel = new();
+    private string baseUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        baseUrl = base.SetBaseUrl();
+        SetDefaults();
+
+        if (isEdit)
+        {
+            isFormChanged = false;
+            projectModel = new ProjectRequestMultipartModel
+                {
+                    Name = ExistingProject!.Name,
+                    ClientName = ExistingProject.ClientName,
+                    IsCompleted = ExistingProject.IsCompleted,
+                    ProjectType = ExistingProject.ProjectType,
+                    Year = ExistingProject.Year,
+                    Location = ExistingProject.Location,
+                    ArchitectName = ExistingProject.ArchitectName,
+                };
+            ProjectId = ExistingProject.Id;
+            MainImagePath = ExistingProject.MainImagePath;
+            ThumbImagePath = ExistingProject.ThumbImagePath;
+            var projectImages = ExistingProject.ProjectImage.ToList();
+            ExistingImages = projectImages ?? new();
+            selectedFile = $"DEĞİŞTİR";
+            uploadIcon = "cached";
+            if (ExistingImages.Any())
+            {
+                selectedFiles = $"DEĞİŞTİR";
+                uploadIconAdditional = "cached";
+            }
+            else
+            {
+                projectModel.HasAdditionalImages = false;
+            }
+        }
+    }
+    private void OnToggleChange(bool newValue)
+    {
+        projectModel.IsCompleted = newValue;
+        isFormChanged = true;
+    }
+    private async Task OnMainImageChange(InputFileChangeEventArgs e)
+    {
+        mainImageBusy = true;
+        isFormChanged = true;
+        if (isEdit && !canEditMainImage)
+        {
+            MainImagePath = string.Empty;
+            ThumbImagePath = string.Empty;
+            canEditMainImage = true;
+        }
+        else
+            mainImage = new();
+
+        var file = e.GetMultipleFiles().FirstOrDefault();
+        if (file != null)
+        {
+            try
+            {
+                var result = await FileUploadService.UploadFile(file);
+
+                if (result != null)
+                {
+                    mainImage = result;
+                    selectedFile = $"DEĞİŞTİR";
+                    uploadIcon = "cached";
+                }
+
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Dosya yüklenirken bir hata oluştu: {ex.Message}");
+                mainImageBusy = false;
+            }
+            mainImageBusy = false;
+        }
+        else
+        {
+            ToastService.ShowError($"Dosya yüklenirken bir hata oluştu. Lütfen dosyayı kontrol edip tekrar deneyiniz.");
+            mainImageBusy = false;
+        }
+    }
+
+    private void RemoveMainImage()
+    {
+        isFormChanged = true;
+        if (isEdit && !canEditMainImage)
+        {
+            MainImagePath = string.Empty;
+            ThumbImagePath = string.Empty;
+            canEditMainImage = true;
+        }
+        else
+        {
+            mainImage = new();
+        }
+        selectedFile = $"ANA GÖRSEL SEÇİNİZ";
+        uploadIcon = "upload";
+    }
+
+    private async Task OnAdditionalImagesChange(InputFileChangeEventArgs e)
+    {
+        additionalImageBusy = true;
+        projectModel.HasAdditionalImages = false;
+        isFormChanged = true;
+
+        if (isEdit && !canEditAdditionalMainImage)
+        {
+            ExistingImages.Clear();
+            canEditAdditionalMainImage = true;
+        }
+        else
+        {
+            additionalImages.Clear();
+            additionalImagesTotalSize = 0;
+        }
+
+        try
+        {
+            var files = e.GetMultipleFiles(maxAllowedFiles);
+            var result = await FileUploadService.UploadMultipleFiles(files);
+
+            if (result != null)
+            {
+                additionalImages = result;
+                selectedFiles = $"DEĞİŞTİR";
+                uploadIconAdditional = "cached";
+                if (result.Count < files.Count)
+                {
+                    ToastService.ShowWarning($"Dosya formatı yanlış olan dosyalar yüklenemedi. Lütfen geçerli formatlara dikkat ediniz.\nYüklenen: {result.Count}\nBaşarısız: {files.Count - result.Count}");
+                }
+                projectModel.HasAdditionalImages = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("The maximum number"))
+                ToastService.ShowError($"Maksimum {maxAllowedFiles} adet dosya yüklenebilir !");
+            else
+                ToastService.ShowError($"Dosya yüklenirken bir hata oluştu: {ex.Message}");
+
+            additionalImages.Clear();
+            additionalImagesTotalSize = 0;
+            projectModel.HasAdditionalImages = false;
+            additionalImageBusy = false;
+        }
+        additionalImageBusy = false;
+    }
+
+    private void RemoveAdditionalImage(UploadFileModel file)
+    {
+        isFormChanged = true;
+
+        if (file != null)
+        {
+            additionalImages.Remove(file);
+        }
+        if (!additionalImages.Any())
+        {
+            selectedFiles = $"EK GÖRSELLERİ SEÇİNİZ";
+            uploadIconAdditional = "upload";
+            projectModel.HasAdditionalImages = false;
+        }
+    }
+
+    private void RemoveExistingAdditionalImage(Guid Id)
+    {
+        isFormChanged = true;
+
+        var imageToDelete = ExistingImages.Where(i => i.Id == Id).FirstOrDefault();
+        if (imageToDelete != null)
+        {
+            ExistingImages.Remove(imageToDelete);
+            RemovedImageIds.Add(Id);
+        }
+        if (!ExistingImages.Any())
+        {
+            RemovedImageIds.Clear();
+            projectModel.HasAdditionalImages = false;
+            selectedFiles = $"EK GÖRSELLERİ SEÇİNİZ";
+            uploadIconAdditional = "upload";
+            canEditAdditionalMainImage = true;
+        }
+    }
+    //TODO: burayi bi incele hatali islemler var gibi
+    private void SetDefaults()
+    {
+        additionalImages.Clear();
+        mainImage = new();
+        selectedFile = $"ANA GÖRSEL SEÇİNİZ";
+        selectedFiles = $"EK GÖRSELLERİ SEÇİNİZ";
+        uploadIcon = "upload";
+        uploadIconAdditional = "upload";
+        ExistingImages.Clear();
+        RemovedImageIds.Clear();
+        canEditMainImage = false;
+        canEditAdditionalMainImage = false;
+        projectModel.HasAdditionalImages = true;
+
+    }
+
+    private void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        ToastService.ShowError("Eksik veya hatalı alanlar mevcut!");
+    }
+
+    private async Task HandleSubmit(Guid? id = default)
+    {
+        base.ShowLoader();
+        try
+        {
+            //await Task.Yield();
+            if (isEdit)
+            {
+                if (!isFormChanged)
+                {
+                    base.HideLoader();
+                    ToastService.ShowWarning("Formda herhangi bir değişiklik yapılmadı !");
+                    return;
+                }
+                if (id == null || id == Guid.Empty)
+                {
+                    base.HideLoader();
+                    ToastService.ShowError("İlgili proje bulunamadı. Lütfen sayfayı yenileyip tekrar deneyiniz.");
+                    return;
+                }
+            }
+
+            using var formData = new MultipartFormDataContent();
+
+            formData.Add(new StringContent(projectModel.Name ?? ""), "Name");
+            formData.Add(new StringContent(projectModel.ClientName ?? ""), "ClientName");
+            formData.Add(new StringContent(projectModel.Location ?? ""), "Location");
+            formData.Add(new StringContent(projectModel.Year ?? ""), "Year");
+            formData.Add(new StringContent(projectModel.ArchitectName ?? ""), "ArchitectName");
+            formData.Add(new StringContent(projectModel.IsCompleted.ToString() ?? ""), "IsCompleted");
+            formData.Add(new StringContent(projectModel.ProjectType.ToString() ?? ""), "ProjectType");
+            formData.Add(new StringContent(projectModel.HasAdditionalImages.ToString() ?? ""), "HasAdditionalImages");
+            if (RemovedImageIds != null && RemovedImageIds.Count > 0)
+            {
+                foreach (var removedImageId in RemovedImageIds)
+                {
+                    formData.Add(new StringContent(removedImageId.ToString() ?? ""), "RemovedAdditionalImagesIds");
+
+                }
+            }
+
+
+            if (isEdit ? (canEditMainImage && mainImage.FileContent == null) : mainImage.FileContent == null)
+            {
+                base.HideLoader();
+                ToastService.ShowWarning("Ana görsel eklenmesi zorunludur");
+                return;
+            }
+
+            if (mainImage.FileContent != null)
+            {
+                var fileContent = new ByteArrayContent(mainImage.FileContent);
+                fileContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
+                    {
+                        Name = "\"MainImage\"",
+                        FileName = $"\"{mainImage.FileName}\""
+                    };
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mainImage.ContentType);
+                formData.Add(fileContent, "MainImage", mainImage.FileName);
+            }
+
+            if (additionalImages != null && additionalImages.Count > 0)
+            {
+                foreach (var image in additionalImages)
+                {
+                    var imageContent = new ByteArrayContent(image.FileContent);
+                    imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(image.ContentType);
+                    imageContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
+                        {
+                            Name = "\"AdditionalImages\"",
+                            FileName = $"\"{image.FileName}\""
+                        };
+                    formData.Add(imageContent, $"AdditionalImages", image.FileName);
+                }
+            }
+
+            if (isEdit)
+            {
+                var response = await ProjectApi.Update(ProjectId, formData);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    SetDefaults();
+
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError(errorMessage);
+                    return;
+                }
+                else
+                {
+                    DialogService.Close(true);
+                    base.HideLoader();
+                }
+            }
+            else
+            {
+                var response = await ProjectApi.CreateProjectAsync(formData);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    SetDefaults();
+
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError(errorMessage);
+                    return;
+                }
+                else
+                {
+                    DialogService.Close(true);
+                    base.HideLoader();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            base.HideLoader();
+            SetDefaults();
+            ToastService.ShowError(ex.Message);
+        }
+    }
+
+    //ÇALIŞAN HALİ
+    // foreach (var file in additionalImages)
+    // {
+    //     var streamContent = new StreamContent(file.Stream);
+    //     streamContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
+    //         {
+    //             Name = "\"AdditionalImages\"",
+    //             FileName = $"\"{file.FileName}\""
+    //         };
+    //     streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+    //     formData.Add(streamContent, "AdditionalImages", file.FileName);
+    //     // file.Dispose();
+    // }
+    //ÇALIŞAN HALİ
+}

@@ -1,0 +1,180 @@
+﻿@page "/career"
+@using Web.Blazor.Models
+@using Web.Blazor.Models.Enums
+@using Web.Blazor.Pages.Components
+@using Web.Blazor.Services.ApiServices
+@inject DialogService DialogService
+@inject IJSRuntime JSRuntime
+@inject ICareerService CareerService
+@inject IToastService ToastService
+@inject TooltipService tooltipService
+@inherits BaseComponent
+
+<PageTitle>Başvuru Yönetimi</PageTitle>
+
+<RadzenStack Orientation="Orientation.Vertical" class="mb-5" Gap="5">
+    <RadzenRow>
+        <RadzenText Text="Başvuru Yönetimi" TextStyle="TextStyle.DisplayH5">
+        </RadzenText>
+    </RadzenRow>
+    <RadzenRow>
+        <RadzenText class="align-self-center" TextStyle="TextStyle.Caption">
+            *başvuranın hakkında bilgisini görüntülemek için başvurunun solundaki ok işaretine tıklayınız.
+        </RadzenText>
+    </RadzenRow>
+</RadzenStack>
+
+@*   TODO:  Görsellerin üzerine tıklanınca modal ile açma işlemi ekle.  *@
+<RadzenDataGrid @ref="careersGrid" Data="careerModel" GridLines="DataGridGridLines.Horizontal" TItem="CareerModel" Responsive="true"
+                AllowFiltering="true" FilterMode="FilterMode.Advanced" Style="border-radius:7px" AllowColumnResize="false" ColumnWidth="10rem"
+                LogicalFilterOperator="LogicalFilterOperator.Or" OrOperatorText="Veya" RowRender="@RowRender"
+                AndOperatorText="Ve" ApplyFilterText="Uygula" ClearFilterText="Temizle" EqualsText="Eşittir"
+                NotEqualsText="Eşit değildir" LessThanOrEqualsText="Daha az veya eşit" LessThanText="Daha az"
+                GreaterThanOrEqualsText="Daha fazla veya eşit" GreaterThanText="Daha fazla" EndsWithText="İle biter"
+                FilterText="Filtrele" StartsWithText="İle başlar" IsEmptyText="Veri boşsa" IsNotEmptyText="Veri boş değilse"
+                IsNullText="Veri yoksa" IsNotNullText="Veri varsa" ContainsText="İçerir" DoesNotContainText="İçermez"
+                AllowSorting="true" EnumFilterSelectText="Seçiniz" PagingSummaryFormat="{1} sayfadan {0}. sayfa (Toplam {2} adet kayıt)"
+                AllowPaging="true" PageSize="@((int)defaultPageSize)" PagerHorizontalAlign="HorizontalAlign.Right" ExpandMode="DataGridExpandMode.Single"
+                ShowPagingSummary="true" ShowHeader="true"
+                class="rz-shadow-1" AllowAlternatingRows="false">
+    <HeaderTemplate>
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="Kayıt sayısı: " Component="MaxPageSize" Style="align-self:center" />
+            <RadzenDropDown @bind-Value=@defaultPageSize Data="@(Enum.GetValues(typeof(PageSizes)))" Name="MaxPageSize" />
+        </RadzenStack>
+    </HeaderTemplate>
+    <EmptyTemplate>
+        @if (isLoading)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="3" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Style="margin: 2rem;color: lightgrey;text-align: center;">
+                <i style="font-size:36px; animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+                <span>
+                    Yükleniyor...
+                </span>
+            </RadzenStack>
+        }
+        else
+        {
+            <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">Gösterilecek kayıt bulunamadı.</p>
+        }
+    </EmptyTemplate>
+    <Template Context="item">
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap">
+            <RadzenText class="align-self-center mb-0" Text="Hakkında:" TextStyle="TextStyle.Subtitle2" Style="font-weight:bold">
+            </RadzenText>
+            <RadzenText class="align-self-center mb-0" Text="@item.Description" TextStyle="TextStyle.Subtitle2" Style="text-wrap-mode:wrap;">
+            </RadzenText>
+        </RadzenStack>
+    </Template>
+    <Columns>
+        <RadzenDataGridColumn TItem="CareerModel" Width="9rem" Property="Name" Title="Adı" />
+        <RadzenDataGridColumn TItem="CareerModel" Width="9rem" Property="SurName" Title="Soyadı" />
+        <RadzenDataGridColumn TItem="CareerModel" Property="Email" Title="Email" />
+        <RadzenDataGridColumn TItem="CareerModel" Property="Phone" Title="Telefon" />
+        <RadzenDataGridColumn TItem="CareerModel" Property="Department" Title="Departman" />
+        <RadzenDataGridColumn TItem="CareerModel" Property="CreatedDate" Title="Başvuru Tarihi" FormatString="{0:d}" />
+        <RadzenDataGridColumn TItem="CareerModel" TextAlign="TextAlign.Center" Frozen FrozenPosition="FrozenColumnPosition.Right" Width="7rem" Sortable="false" Filterable="false" Title="İşlemler">
+            <Template Context="item">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center">
+                    <RadzenButton Icon="contact_page" ButtonStyle="ButtonStyle.Info" Variant="Variant.Filled" Shade="Shade.Lighter" MouseEnter="@(args => ShowTooltip(args,"CV Görüntüle"))" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(()=> ShowCvFile(item.CVFilePath))" aria-label="Show" />
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Filled" MouseEnter="@(args => ShowTooltip(args,"Kaydı Sil"))" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="() => Delete(item)" aria-label="Delete" />
+                </RadzenStack>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+@code {
+    RadzenDataGrid<CareerModel> careersGrid;
+    private CareerModel editCareerModel = new();
+    private List<CareerModel> careerModel = [];
+    private PageSizes defaultPageSize = PageSizes.Five;
+    private bool isImageVisible = true;
+    private bool isLoading = true;
+    private bool isEdit = false;
+    private string baseUrl = "";
+    protected override async Task OnInitializedAsync()
+    {
+        baseUrl = base.SetBaseUrl();
+        await LoadData();
+    }
+    void ShowTooltip(ElementReference elementReference, string text) => tooltipService.Open(elementReference, text, null);
+
+    private async Task ShowCvFile(string cvFilePath)
+    {
+        await JSRuntime.InvokeVoidAsync("open", baseUrl + cvFilePath, "_blank");
+    }
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            careerModel = await CareerService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        isLoading = false;
+        isEdit = false;
+    }
+
+    private async void Delete(CareerModel model)
+    {
+
+        var title = $"Başvuran: {model.Name + " " + model.SurName}";
+
+        var result = await DialogService.OpenAsync(title, ds =>
+    @<RadzenStack Gap="1.5rem">
+        <RadzenText Text="Başvuruyu silmek istediğinize emin misiniz ?" TextStyle="TextStyle.Body1" />
+        <RadzenText Text="NOT: Bu işlem geri alınamaz !" TextStyle="TextStyle.Subtitle2" class="text-danger" />
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceAround">
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Sil" Click="() => ds.Close(true)" Style="width: 80px;" ButtonStyle="ButtonStyle.Secondary" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Vazgeç" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Base" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+    ,
+    new DialogOptions()
+    {
+        Width = "400px",
+        ShowClose = false
+    });
+
+        if (result == true)
+        {
+            base.ShowLoader();
+            try
+            {
+                var response = await CareerService.DeleteCareerAsync(model.Id);
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError($"Başvuru silinirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Kodu: {response.StatusCode}");
+                    return;
+                }
+                else
+                {
+                    careerModel.Remove(model);
+                    await careersGrid.Reload();
+                    base.HideLoader();
+                    ToastService.ShowSuccess("Başvuru başarıyla silindi !", settings => { settings.Timeout = 2; });
+                }
+            }
+            catch (Exception ex)
+            {
+                base.HideLoader();
+                ToastService.ShowError($"Başvuru silinirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Mesajı: {ex.Message}");
+            }
+        }
+    }
+    void RowRender(RowRenderEventArgs<CareerModel> args)
+    {
+        args.Expandable = !string.IsNullOrEmpty(args.Data.Description);
+    }
+}

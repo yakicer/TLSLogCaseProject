@@ -1,0 +1,29 @@
+﻿
+@code {
+    public string SetBaseApiUrl()
+    {
+        return Configuration["App:baseApiUrl"]!;
+    }
+    public string SetBaseUrl()
+    {
+        return Configuration["App:baseUrl"]!;
+    }
+    public void ShowLoader()
+    {
+        Dialog.Open<SpinnerComponent>("", null,
+        new DialogOptions()
+            {
+                Width = "100%",
+                Height = "100%",
+                CloseDialogOnOverlayClick = false,
+                ShowClose = false, ShowTitle = false,
+                Style = "background-color:#00000054 !important",
+                CloseDialogOnEsc = false,
+            });
+    }
+
+    public void HideLoader()
+    {
+        Dialog.Close();
+    }
+}

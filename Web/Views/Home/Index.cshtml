@@ -1,0 +1,32 @@
+﻿@using Entities.DTO
+@{
+    ViewData["Title"] = "Home Page";
+    CurrentUserDTO userData = ViewBag.UserInfo;
+    string token = ViewBag.Token ?? "boş";
+}
+
+<div class="text-center">
+    @if (userData != null)
+    {
+        <h1 class="display-3">EDUCADESIGN ADMIN PANEL</h1>
+        <h2 class="display-4">Hoşgeldiniz Sayın @userData.Name @userData.SurName</h2>
+        <h3 class="display-5">
+            Mevcut Rolleriniz  @foreach (var item in userData.Roles)
+            {
+                <p>
+                    @item
+                </p>
+        }
+        </h3>
+        <p>TOKEN: @token</p>
+        <p>Web sitesine gitmek için <a target="_blank" href="https://educadesign.com"> bağlantıya tıklayınız.</a>.</p>
+    }
+    else
+    {
+        <h1 class="display-4">EDUCADESIGN ADMIN PANEL</h1>
+        <p>Web sitesine gitmek için <a target="_blank" href="https://educadesign.com"> bağlantıya tıklayınız.</a>.</p>
+    }
+
+
+
+</div>

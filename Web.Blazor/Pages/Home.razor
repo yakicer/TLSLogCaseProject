@@ -1,0 +1,277 @@
+﻿﻿@using Blazored.Toast.Configuration
+@using Web.Blazor.Models
+@using Web.Blazor.Models.Enums
+@using Web.Blazor.Services.ApiServices
+@using Web.Blazor.Services.Interface
+@inject IToastService ToastService
+@inject IDashboardService DashboardService
+@inject IAuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+@page "/"
+
+<PageTitle>Ana Sayfa</PageTitle>
+@if (isLoading)
+{
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="3" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Style="margin: 2rem;color: lightgrey;text-align: center;">
+        <i style="font-size:36px; animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+        <span>
+            Veriler Alınıyor...
+        </span>
+    </RadzenStack>
+}
+else
+{
+    <h2 >Genel Görünüm</h2>
+
+    <RadzenRow>
+        <!-- KPI Cards -->
+        <RadzenColumn Width="4">
+
+            <RadzenCard class="rz-my-12 rz-mx-auto" Style="max-width: 420px">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Start" Gap="1rem" class="rz-p-4">
+                    <RadzenStack Gap="0">
+                        <RadzenText TextStyle="TextStyle.H6"><b>Proje Detayları</b></RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+                <RadzenCard class="rz-background-color-primary-lighter rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 1rem calc(-1 * var(--rz-card-padding));">
+                    <RadzenRow RowGap="0">
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">Toplam proje sayısı</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@totalProjectCount</b></RadzenText>
+                        </RadzenColumn>
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">Bu yıl eklenen projeler</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@thisYearProjectCount</b></RadzenText>
+                        </RadzenColumn>
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">Tamamlanan Projeler Oranı</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@projectCompletionRate.ToString("0.##")%</b></RadzenText>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+            </RadzenCard>
+        </RadzenColumn>
+
+        <RadzenColumn Width="4">
+
+            <RadzenCard class="rz-my-12 rz-mx-auto" Style="max-width: 420px">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Start" Gap="1rem" class="rz-p-4">
+                    <RadzenStack Gap="0">
+                        <RadzenText TextStyle="TextStyle.H6"><b>Çalışan Detayları</b></RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+                <RadzenCard class="rz-background-color-primary-lighter rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 1rem calc(-1 * var(--rz-card-padding));">
+                    <RadzenRow RowGap="0">
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">Toplam çalışan sayısı</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@totalEmployeeCount</b></RadzenText>
+                        </RadzenColumn>
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">En yoğun departman</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@(mostCrowdedDepartment.Label)</b></RadzenText>
+                        </RadzenColumn>
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">Çalışan sayısı</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@(mostCrowdedDepartment.Value)</b></RadzenText>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+            </RadzenCard>
+        </RadzenColumn>
+
+        <RadzenColumn Width="4">
+
+            <RadzenCard class="rz-my-12 rz-mx-auto" Style="max-width: 420px">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Start" Gap="1rem" class="rz-p-4">
+                    <RadzenStack Gap="0">
+                        <RadzenText TextStyle="TextStyle.H6"><b>Başvuru Detayları</b></RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+                <RadzenCard class="rz-background-color-primary-lighter rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 1rem calc(-1 * var(--rz-card-padding));">
+                    <RadzenRow RowGap="0">
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">Toplam başvuru sayısı</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@totalCareerCount</b></RadzenText>
+                        </RadzenColumn>
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0">En çok başvurulan departman</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b>@mostCrowdedApplication.Label </b></RadzenText>
+                        </RadzenColumn>
+                        <RadzenColumn SizeSM="12">
+                            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-on-primary-lighter rz-display-flex rz-mt-4 rz-mb-0"> Başvuru sayısı </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" class="rz-color-on-primary-lighter mt-2"><b> @mostCrowdedApplication.Value</b> </RadzenText>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <h2 class="mb-1 mt-3">Grafikler</h2>
+    <RadzenTabs Style="margin-top: 20px">
+        <!-- Projects Tab -->
+        <Tabs>
+            <RadzenTabsItem Text="Projeler">
+                <RadzenRow>
+                    <RadzenColumn Width="6">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Tamamlanan / Devam Eden Projeler</RadzenText>
+                            <RadzenChart>
+                                <RadzenPieSeries Title="Adet" Data="@projectCompletionStatus" CategoryProperty="Label" ValueProperty="Value" />
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Width="6">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Projelerin Yıllara Göre Dağılımı</RadzenText>
+                            <RadzenChart>
+                                <RadzenBarSeries Title="Adet" Data="@projectCountByYear" CategoryProperty="Label" ValueProperty="Value" />
+                                <RadzenBarOptions Radius="5" />
+                                <RadzenValueAxis Min="0" />
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                </RadzenRow>
+                <RadzenRow>
+                    <RadzenColumn Width="12">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Zamana Göre Proje Artışı</RadzenText>
+                            <RadzenChart>
+                                <RadzenLineSeries Smooth="true" Title="Adet" Data="@projectGrowth" CategoryProperty="Label" ValueProperty="Value">
+                                    <RadzenMarkers Visible="true" MarkerType="MarkerType.Circle" />
+                                    <RadzenSeriesDataLabels Visible="true" />
+                                </RadzenLineSeries>
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenTabsItem>
+
+            <!-- Employees Tab -->
+            <RadzenTabsItem Text="Çalışanlar">
+                <RadzenRow>
+                    <RadzenColumn Width="6">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Departman Bazlı Çalışan Sayısı</RadzenText>
+                            <RadzenChart>
+                                <RadzenBarSeries Title="Adet" Data="@employeeByDepartment" CategoryProperty="Label" ValueProperty="Value" />
+                                <RadzenBarOptions Radius="5" />
+                                <RadzenValueAxis Min="0" />
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Width="6">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Yaş Dağılımı</RadzenText>
+                            <RadzenChart>
+                                <RadzenPieSeries Title="Adet" Data="@employeeAgeDistribution" CategoryProperty="Label" ValueProperty="Value" />
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenTabsItem>
+
+            <!-- Careers Tab -->
+            <RadzenTabsItem Text="Kariyer Başvuruları">
+                <RadzenRow>
+                    <RadzenColumn Width="6">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Departman Bazlı Başvurular</RadzenText>
+                            <RadzenChart>
+                                <RadzenBarSeries  Title="Başvuru" Data="@careerByDepartment" CategoryProperty="Label" ValueProperty="Value" />
+                                <RadzenBarOptions Radius="5" />
+                                <RadzenValueAxis Min="0" />
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenTabsItem>
+
+            <!-- Solutions Tab -->
+            <RadzenTabsItem Text="Çözümler">
+                <RadzenRow>
+                    <RadzenColumn Width="6">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Çözüm Tiplerine Göre Dağılım</RadzenText>
+                            <RadzenChart>
+                                <RadzenPieSeries Title="Adet" Data="@solutionByType" CategoryProperty="Label" ValueProperty="Value" />
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Width="6">
+                        <RadzenCard Variant="Variant.Outlined">
+                            <RadzenText TextStyle="TextStyle.Body1">Çözüm Sayısı Artışı (Zamana Göre)</RadzenText>
+                            <RadzenChart>
+                                <RadzenLineSeries Smooth="true" Title="Adet" Data="@solutionGrowth" CategoryProperty="Label" ValueProperty="Value">
+                                    <RadzenMarkers Visible="true" MarkerType="MarkerType.Circle" />
+                                    <RadzenSeriesDataLabels Visible="true" />
+                                </RadzenLineSeries>
+                            </RadzenChart>
+                        </RadzenCard>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenTabsItem>
+        </Tabs>
+
+    </RadzenTabs>
+}
+
+
+
+@code
+{
+    int totalProjectCount;
+    int thisYearProjectCount;
+    double projectCompletionRate;
+    int projectCompletionRateInt;
+    int totalEmployeeCount;
+    int totalCareerCount;
+    private bool isLoading = false;
+
+    List<ChartModel> projectCompletionStatus = new();
+    List<ChartModel> projectCountByYear = new();
+    List<ChartModel> projectGrowth = new();
+    ChartModel mostCrowdedDepartment = new();
+    ChartModel mostCrowdedApplication = new();
+
+    List<ChartModel> employeeByDepartment = new();
+    List<ChartModel> employeeAgeDistribution = new();
+
+    List<ChartModel> careerByDepartment = new();
+
+    List<ChartModel> solutionByType = new();
+    List<ChartModel> solutionGrowth = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await LoadDashboardData();
+        isLoading = false;
+    }
+
+    private async Task LoadDashboardData()
+    {
+        // Overview Cards
+        totalProjectCount = await DashboardService.GetTotalProjectCount();
+        thisYearProjectCount = await DashboardService.GetThisYearProjectCount();
+        projectCompletionRate = await DashboardService.GetProjectCompletionRate();
+        projectCompletionRate = Math.Round(projectCompletionRate);
+        totalEmployeeCount = await DashboardService.GetTotalEmployeeCount();
+        mostCrowdedDepartment = await DashboardService.GetMostCrowdedDepartment();
+        totalCareerCount = await DashboardService.GetTotalCareerCount();
+        // Charts
+        projectCompletionStatus = await DashboardService.GetProjectCompletionStatus();
+        projectCountByYear = await DashboardService.GetProjectCountByYear();
+        projectGrowth = await DashboardService.GetProjectGrowthOverTime();
+
+        employeeByDepartment = await DashboardService.GetEmployeeByDepartment();
+        employeeAgeDistribution = await DashboardService.GetEmployeeAgeDistribution();
+
+        careerByDepartment = await DashboardService.GetCareerByDepartment();
+
+        solutionByType = await DashboardService.GetSolutionCountByType();
+        solutionGrowth = await DashboardService.GetSolutionGrowthOverTime();
+        mostCrowdedApplication = careerByDepartment.OrderByDescending(c => c.Value).FirstOrDefault()!;
+    }
+
+}

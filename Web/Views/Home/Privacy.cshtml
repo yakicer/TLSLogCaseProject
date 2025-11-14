@@ -1,0 +1,24 @@
+﻿@{
+    ViewData["Title"] = "Privacy Policy";
+    bool isSuccess = ViewBag.IsLoginSuccess;
+    var content = ViewBag.Content;
+    string token = ViewBag.Token;
+}
+<h1>@ViewData["Title"]</h1>
+@if (isSuccess)
+{
+    <p>Giriş Başarılı</p>
+    <div>@content</div>
+    <br />
+    <div>TOKEN: @token</div>
+}
+else
+{
+    <p>Giriş Başarısız ! </p>
+
+}
+<p>Use this page to detail your site's privacy policy.</p>
+<script type="text/javascript">
+    localStorage.setItem("myToken", "@token");
+    document.cookie = `AuthToken=${"@token"}; path=/; Secure`;
+</script>

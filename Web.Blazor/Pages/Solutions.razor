@@ -1,0 +1,199 @@
+﻿@page "/solutions"
+@using Web.Blazor.Models
+@using Web.Blazor.Models.Enums
+@using Web.Blazor.Pages.Components
+@using Web.Blazor.Services.ApiServices
+@inject DialogService DialogService
+@inject ISolutionService SolutionService
+@inject IToastService ToastService
+@inject TooltipService tooltipService
+@inherits BaseComponent
+
+<PageTitle>Çözüm Yönetimi</PageTitle>
+
+
+<RadzenText Text="Çözüm Yönetimi" TextStyle="TextStyle.DisplayH5" Class="mb-2">
+</RadzenText>
+<RadzenText class="align-self-center mb-0" TextStyle="TextStyle.Caption">
+    *çözüm açıklamalarını görüntülemek için çözümün solundaki ok işaretine tıklayınız.
+</RadzenText>
+<div class="d-flex justify-content-end align-items-center mb-2 px-2">
+    <RadzenButton Icon="add" Disabled="isLoading" Text="Yeni Çözüm Ekle" Click="@(()=> OpenDialog(null))" />
+</div>
+
+@*     Görsellerin üzerine tıklanınca modal ile açma işlemi ekle.  *@
+<RadzenDataGrid @ref="solutionsGrid" Data="solutionModel" GridLines="DataGridGridLines.Horizontal" TItem="SolutionModel" Responsive="true"
+                AllowFiltering="true" FilterMode="FilterMode.Advanced" Style="border-radius:7px" AllowColumnResize="false"
+                LogicalFilterOperator="LogicalFilterOperator.Or" OrOperatorText="Veya"
+                AndOperatorText="Ve" ApplyFilterText="Uygula" ClearFilterText="Temizle" EqualsText="Eşittir"
+                NotEqualsText="Eşit değildir" LessThanOrEqualsText="Daha az veya eşit" LessThanText="Daha az"
+                GreaterThanOrEqualsText="Daha fazla veya eşit" GreaterThanText="Daha fazla" EndsWithText="İle biter"
+                FilterText="Filtrele" StartsWithText="İle başlar" IsEmptyText="Veri boşsa" IsNotEmptyText="Veri boş değilse"
+                IsNullText="Veri yoksa" IsNotNullText="Veri varsa" ContainsText="İçerir" DoesNotContainText="İçermez"
+                AllowSorting="true" EnumFilterSelectText="Seçiniz" PagingSummaryFormat="{1} sayfadan {0}. sayfa (Toplam {2} adet kayıt)"
+                AllowPaging="true" PageSize="@((int)defaultPageSize)" PagerHorizontalAlign="HorizontalAlign.Right" ExpandMode="DataGridExpandMode.Single"
+                ShowPagingSummary="true" ShowHeader="true"
+                class="rz-shadow-1" AllowAlternatingRows="false">
+    <HeaderTemplate>
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="Kayıt sayısı: " Component="MaxPageSize" Style="align-self:center" />
+            <RadzenDropDown @bind-Value=@defaultPageSize Data="@(Enum.GetValues(typeof(PageSizes)))" Name="MaxPageSize" />
+            <RadzenToggleButton Text="@(isImageVisible ? "Görselleri Gizle" : "Görselleri Göster" )"
+                                ToggleButtonStyle="ButtonStyle.Success" ButtonStyle="ButtonStyle.Dark"
+                                Icon="visibility_off" ToggleIcon="visibility"
+                                Click=@(() => isImageVisible = !isImageVisible) />
+        </RadzenStack>
+    </HeaderTemplate>
+    <EmptyTemplate>
+        @if (isLoading)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="3" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Style="margin: 2rem;color: lightgrey;text-align: center;">
+                <i style="font-size:36px; animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+                <span>
+                    Yükleniyor...
+                </span>
+            </RadzenStack>
+        }
+        else
+        {
+            <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">Gösterilecek kayıt bulunamadı.</p>
+        }
+    </EmptyTemplate>
+    <Template Context="item">
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap">
+            <RadzenText class="align-self-center mb-0" Text="Çözüm Açıklaması:" TextStyle="TextStyle.Subtitle2" Style="font-weight:bold">
+            </RadzenText>
+            <RadzenText class="align-self-center mb-0" Text="@item.SubTitle" TextStyle="TextStyle.Subtitle2" Style="text-wrap-mode:wrap;">
+            </RadzenText>
+        </RadzenStack>
+    </Template>
+    <Columns>
+        <RadzenDataGridColumn Visible="@isImageVisible" TItem="SolutionModel" Frozen Sortable="false" TextAlign="TextAlign.Center" Width="7rem" Filterable="false" Title="Çözüm Görseli">
+            <Template Context="data">
+                <RadzenStack Gap="0" Orientation="Orientation.Horizontal" class="m-0 p-0" JustifyContent="JustifyContent.Center">
+                    <RadzenImage Path="@(string.IsNullOrEmpty(data.ThumbImagePath) ? "educa-logo.png" : (baseUrl + data.ThumbImagePath))" class="rz-gravatar rz-gravatar-custom" />
+                </RadzenStack>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SolutionModel" Property="Title" Title="Çözüm Adı" />
+
+@*         <RadzenDataGridColumn TItem="SolutionModel" Property="SubTitle" Title="Çözüm Açıklaması" />
+ *@        
+        <RadzenDataGridColumn TItem="SolutionModel" Property="SolutionType" Title="Çözüm Tipi" />
+        <RadzenDataGridColumn TItem="SolutionModel" TextAlign="TextAlign.Center" Frozen FrozenPosition="FrozenColumnPosition.Right" Width="150px" Sortable="false" Filterable="false" Title="İşlemler">
+            <Template Context="item">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Filled" MouseEnter="@(args => ShowTooltip(args,"Çözümü Düzenle"))" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(()=> OpenDialog(item))" aria-label="Show" />
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Filled" MouseEnter="@(args => ShowTooltip(args,"Çözümü Sil"))" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="() => Delete(item)" aria-label="Delete" />
+                </RadzenStack>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+@code {
+    RadzenDataGrid<SolutionModel> solutionsGrid;
+    private SolutionModel editSolutionModel = new();
+    private List<SolutionModel> solutionModel = [];
+    private PageSizes defaultPageSize = PageSizes.Five;
+    private bool isImageVisible = true;
+    private bool isLoading = true;
+    private bool isEdit = false;
+    private string baseUrl = "";
+    protected override async Task OnInitializedAsync()
+    {
+        baseUrl = base.SetBaseUrl();
+        await LoadData();
+    }
+
+    void ShowTooltip(ElementReference elementReference, string text) => tooltipService.Open(elementReference, text, null);
+
+    async Task OpenDialog(SolutionModel? solution)
+    {
+        isEdit = solution == null ? true : false;
+        var result = await DialogService.OpenAsync<SolutionCrudComponent>(
+        solution == null ? "Yeni Çözüm Ekle" : "Seçili Çözümü Düzenle",
+        new Dictionary<string, object>() { { "ExistingSolution", solution! } },
+    new DialogOptions { Width = "700px", CloseDialogOnOverlayClick = false, AutoFocusFirstElement = false, CloseDialogOnEsc = false}
+        );
+
+        if (result is true)
+        {
+            if (isEdit)
+                ToastService.ShowSuccess("Çözüm başarıyla eklendi!");
+            else
+                ToastService.ShowSuccess("Çözüm başarıyla güncellendi!");
+
+            await LoadData();
+            await solutionsGrid.RefreshDataAsync();
+        }
+    }
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            solutionModel = await SolutionService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        isLoading = false;
+        isEdit = false;
+    }
+
+    private async void Delete(SolutionModel model)
+    {
+
+        var title = $"Çözüm: {model.Title}";
+
+        var result = await DialogService.OpenAsync(title, ds =>
+    @<RadzenStack Gap="1.5rem">
+        <RadzenText Text="Çözümü silmek istediğinize emin misiniz ?" TextStyle="TextStyle.Body1" />
+        <RadzenText Text="NOT: Bu işlem geri alınamaz !" TextStyle="TextStyle.Subtitle2" class="text-danger" />
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceAround">
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Sil" Click="() => ds.Close(true)" Style="width: 80px;" ButtonStyle="ButtonStyle.Secondary" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Vazgeç" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Base" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+    ,
+    new DialogOptions()
+    {
+        Width = "400px",
+        ShowClose = false
+    });
+
+        if (result == true)
+        {
+            base.ShowLoader();
+            try
+            {
+                var response = await SolutionService.DeleteSolutionAsync(model.Id);
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError($"Çözüm silinirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Kodu: {response.StatusCode}");
+                    return;
+                }
+                else
+                {
+                    solutionModel.Remove(model);
+                    await solutionsGrid.Reload();
+                    base.HideLoader();
+                    ToastService.ShowSuccess("Çözüm başarıyla silindi !", settings => { settings.Timeout = 2; });
+                }
+            }
+            catch (Exception ex)
+            {
+                base.HideLoader();
+                ToastService.ShowError($"Çözüm silinirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyiniz. Hata Mesajı: {ex.Message}");
+            }
+        }
+    }
+}

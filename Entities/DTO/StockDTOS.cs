@@ -1,0 +1,41 @@
+﻿namespace Entities.DTO
+{
+    public class StockListDto
+    {
+        public int Id { get; set; }
+        public string StockName { get; set; } = null!;
+        public string? Unit { get; set; }
+        public decimal Price { get; set; }
+        public string Barcode { get; set; } = null!;
+        public bool IsActive { get; set; }
+    }
+
+    public class StockDetailDto
+    {
+        public int Id { get; set; }
+        public string StockName { get; set; } = null!;
+        public string? Unit { get; set; }
+        public decimal Price { get; set; }
+        public string Barcode { get; set; } = null!;
+        public bool IsActive { get; set; }
+    }
+
+    public class StockCreateDto
+    {
+        public string StockName { get; set; } = null!;
+        public string? Unit { get; set; }
+        public decimal Price { get; set; }
+        public string Barcode { get; set; } = null!;
+    }
+
+    public class StockUpdateDto
+    {
+        public int Id { get; set; }
+        public string StockName { get; set; } = null!;
+        public string? Unit { get; set; }
+        public decimal Price { get; set; }
+        public string Barcode { get; set; } = null!;
+        public bool IsActive { get; set; }
+    }
+
+}

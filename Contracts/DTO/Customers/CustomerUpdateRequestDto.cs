@@ -1,0 +1,9 @@
+﻿namespace Contracts.DTO.Customers
+{
+    public class CustomerUpdateRequestDto
+    {
+        public int Id { get; set; }
+        public string CustomerName { get; set; } = null!;
+        public bool IsActive { get; set; }
+    }
+}

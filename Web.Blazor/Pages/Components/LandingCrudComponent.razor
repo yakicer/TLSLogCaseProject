@@ -1,0 +1,326 @@
+﻿@using Web.Blazor.Models
+@using Web.Blazor.Models.Enums
+@using Web.Blazor.Models.RequestModel
+@using Web.Blazor.Services.ApiServices
+@using Web.Blazor.Services.Interface
+@inject ILandingService LandingService
+@inject DialogService DialogService
+@inject IToastService ToastService
+@inject IFileUploadService FileUploadService
+@inherits BaseComponent
+
+<RadzenTemplateForm Data="@landingModel" TItem="LandingPageRequestModel" onclose="@( () => SetDefaults )" Submit="@(() => HandleSubmit(landingId))" InvalidSubmit=@OnInvalidSubmit>
+    <div class="grid gap-3 p-3">
+        <RadzenStack>
+            <RadzenFormField Text="Sayfa Başlığı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="Title" @bind-Value="landingModel.Title" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="Title" Text="Sayfa Başlığı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Sayfa Alt Başlığı">
+                <ChildContent>
+                    <RadzenTextBox Change="@( () => isFormChanged = true)" Name="SubTitle" @bind-Value="landingModel.SubTitle" />
+                </ChildContent>
+                <Helper>
+                    <RadzenRequiredValidator Component="SubTitle" Text="Sayfa Alt Başlığı alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+            <RadzenFormField Text="Sayfa Sıralaması">
+                    <RadzenNumeric ReadOnly="true" Name="Title" @bind-Value="landingModel.Order" />
+            </RadzenFormField>
+            <RadzenFormField required="false" Text="Sayfa Açıklaması">
+                <ChildContent>
+                    <RadzenTextArea Rows="8" Change="@( () => isFormChanged = true)" @oninput="@(args => maxLengthValue = $"{args.Value}")" MaxLength="@maxLength" Name="Description" @bind-Value="landingModel.Description" />
+                </ChildContent>
+                <Helper>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="@( (maxLengthValue.Length == maxLength) ? "color:red" : "" )" Text="@($"{maxLengthValue.Length}/{maxLength}")" />
+                    <RadzenRequiredValidator Component="Description" Text="Sayfa Açıklaması alanı zorunludur." />
+                </Helper>
+            </RadzenFormField>
+        </RadzenStack>
+        <hr />
+        <RadzenStack Orientation="Orientation.Vertical" Gap="0">
+            <div class="py-2">
+                <label for="select-mainfile-hidden" class="rz-button rz-button-md rz-variant-filled rz-base rz-shade-default align-self-center">
+                    @if (mainImageBusy)
+                    {
+                        <i style="animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+                        <span>&nbsp;YÜKLENİYOR...</span>
+                    }
+                    else
+                    {
+                        <i class="notranslate rz-button-icon-left rzi"><!--!-->@uploadIcon</i>
+                        <span>&nbsp;@selectedFile</span>
+                    }
+                </label>
+                <InputFile hidden id="select-mainfile-hidden" OnChange="OnMainImageChange" disabled="@mainImageBusy" accept="image/*" />
+            </div>
+            @if (!string.IsNullOrEmpty(ThumbImagePath))
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Sayfa arkaplan görseli
+                        </RadzenText>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flew-row align-self-center justify-content-center">
+                            <RadzenRow RowGap="3">
+                                <div class="position-relative">
+                                    <img src="@( baseUrl + ThumbImagePath)" class="project_thumb_image mx-auto d-block" />
+                                    <RadzenButton Click=@(() => RemoveMainImage()) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                </div>
+                            </RadzenRow>
+                        </div>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+            @if (mainImage.LoadedFile != null && !string.IsNullOrEmpty(mainImage.LoadedFile?.Base64Content))
+            {
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2">
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Seçili görsel
+                        </RadzenText>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined">
+                        <div class="d-flex flew-row align-self-center justify-content-center">
+                            <RadzenRow RowGap="3">
+                                <div class="position-relative">
+                                    <img src="@mainImage.LoadedFile?.Base64Content" class="project_thumb_image mx-auto d-block" />
+                                    <RadzenButton Click=@(() => RemoveMainImage()) Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="rz-border-radius-10 rz-shadow-6 p-0 position-absolute top-0 end-0" />
+                                </div>
+                            </RadzenRow>
+                        </div>
+                    </RadzenCard>
+                    <RadzenCard Variant="Variant.Outlined" Style="text-align:center;" class="rz-background-color-base-200 p-2 m-0">
+                        <RadzenText TextStyle="TextStyle.Body1">
+                            Toplam Boyut : <b>@((mainImage.FileContent.Length / (1024 * 1024.0d)).ToString("0.##")) Mb</b>
+                        </RadzenText>
+                    </RadzenCard>
+                </RadzenStack>
+            }
+        </RadzenStack>
+        <RadzenButton class="mt-3" ButtonType="ButtonType.Submit" Text="Kaydet" />
+    </div>
+</RadzenTemplateForm>
+
+
+@code {
+    [Parameter] public Tuple<LandingModel, int>? LandingObject { get; set; }
+    public LandingModel? ExistingLanding { get; set; }
+    string maxLengthValue = "";
+    int maxLength = 800;
+    private string selectedFile = "GÖRSEL SEÇİNİZ";
+    UploadFileModel mainImage = new();
+    string uploadIcon = "upload";
+    private bool isEdit => LandingObject!.Item1 != null;
+    private bool canEditMainImage = false;
+    private string? MainImagePath = string.Empty;
+    private string? ThumbImagePath = string.Empty;
+    bool mainImageBusy = false;
+    private Guid landingId = Guid.Empty;
+    private bool isFormChanged = false;
+    private LandingPageRequestModel landingModel = new();
+    private string baseUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        baseUrl = base.SetBaseUrl();
+        SetDefaults();
+        if (isEdit)
+        {
+            ExistingLanding = LandingObject!.Item1;
+            isFormChanged = false;
+            landingModel = new LandingPageRequestModel
+                {
+                    Title = ExistingLanding!.Title,
+                    SubTitle = ExistingLanding!.SubTitle,
+                    Description = ExistingLanding!.Description,
+                    Order = ExistingLanding!.Order,
+                };
+            landingId = ExistingLanding.Id;
+            MainImagePath = ExistingLanding.MainImagePath;
+            ThumbImagePath = ExistingLanding.ThumbImagePath;
+            if (!string.IsNullOrEmpty(ExistingLanding.ThumbImagePath))
+            {
+                selectedFile = $"DEĞİŞTİR";
+                uploadIcon = "cached";
+            }
+        }
+        else
+        {
+            landingModel.Order = LandingObject!.Item2;
+        }
+    }
+
+    private async Task OnMainImageChange(InputFileChangeEventArgs e)
+    {
+        mainImageBusy = true;
+        isFormChanged = true;
+        if (isEdit && !canEditMainImage)
+        {
+            MainImagePath = string.Empty;
+            ThumbImagePath = string.Empty;
+            canEditMainImage = true;
+        }
+        else
+            mainImage = new();
+
+        var file = e.GetMultipleFiles().FirstOrDefault();
+        if (file != null)
+        {
+            try
+            {
+                var result = await FileUploadService.UploadFile(file);
+
+                if (result != null)
+                {
+                    mainImage = result;
+                    selectedFile = $"DEĞİŞTİR";
+                    uploadIcon = "cached";
+                }
+
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Dosya yüklenirken bir hata oluştu: {ex.Message}");
+                mainImageBusy = false;
+            }
+            mainImageBusy = false;
+        }
+        else
+        {
+            ToastService.ShowError($"Dosya yüklenirken bir hata oluştu. Lütfen dosyayı kontrol edip tekrar deneyiniz.");
+            mainImageBusy = false;
+        }
+    }
+
+    private void RemoveMainImage()
+    {
+        isFormChanged = true;
+        if (isEdit && !canEditMainImage)
+        {
+            MainImagePath = string.Empty;
+            ThumbImagePath = string.Empty;
+            canEditMainImage = true;
+        }
+        else
+        {
+            mainImage = new();
+        }
+        selectedFile = $"GÖRSEL SEÇİNİZ";
+        uploadIcon = "upload";
+    }
+
+
+
+    private void SetDefaults()
+    {
+        mainImage = new();
+        selectedFile = $"GÖRSEL SEÇİNİZ";
+        uploadIcon = "upload";
+        canEditMainImage = false;
+    }
+
+    private void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        ToastService.ShowError("Eksik veya hatalı alanlar mevcut!");
+    }
+
+    private async Task HandleSubmit(Guid? id = default)
+    {
+        base.ShowLoader();
+        try
+        {
+            if (isEdit)
+            {
+                if (!isFormChanged)
+                {
+                    base.HideLoader();
+                    ToastService.ShowWarning("Formda herhangi bir değişiklik yapılmadı !");
+                    return;
+                }
+                if (id == null || id == Guid.Empty)
+                {
+                    base.HideLoader();
+                    ToastService.ShowError("İlgili çalışan bulunamadı. Lütfen sayfayı yenileyip tekrar deneyiniz.");
+                    return;
+                }
+            }
+
+            using var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(landingModel.Title ?? ""), "Title");
+            formData.Add(new StringContent(landingModel.SubTitle ?? ""), "SubTitle");
+            formData.Add(new StringContent(landingModel.Description ?? ""), "Description");
+            formData.Add(new StringContent(landingModel.Order.ToString() ?? "0"), "Order");
+
+            if (isEdit ? (canEditMainImage && mainImage.FileContent == null) : mainImage.FileContent == null)
+            {
+                base.HideLoader();
+                ToastService.ShowWarning("Sayfa arkaplan görseli eklenmesi zorunludur");
+                return;
+            }
+
+            if (mainImage.FileContent != null)
+            {
+                var fileContent = new ByteArrayContent(mainImage.FileContent);
+                fileContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
+                    {
+                        Name = "\"MainImage\"",
+                        FileName = $"\"{mainImage.FileName}\""
+                    };
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mainImage.ContentType);
+                formData.Add(fileContent, "MainImage", mainImage.FileName);
+            }
+
+            if (isEdit)
+            {
+                var response = await LandingService.UpdateLandingAsync(landingId, formData);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    SetDefaults();
+
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError(errorMessage);
+                    return;
+                }
+                else
+                {
+                    DialogService.Close(true);
+                    base.HideLoader();
+                }
+            }
+            else
+            {
+                var response = await LandingService.CreateLandingAsync(formData);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    base.HideLoader();
+                    SetDefaults();
+
+                    string errorMessage = response.ReasonPhrase!;
+                    ToastService.ShowError(errorMessage);
+                    return;
+                }
+                else
+                {
+                    DialogService.Close(true);
+                    base.HideLoader();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            base.HideLoader();
+            SetDefaults();
+            ToastService.ShowError(ex.Message);
+        }
+    }
+}

@@ -1,0 +1,160 @@
+﻿@using System.Security.Claims
+@inject NavigationManager Navigation;
+@inject IToastService ToastService
+@implements IDisposable;
+@inherits LayoutComponentBase
+<BlazoredToasts />
+<HeadContent>
+    <RadzenTheme Theme="material" />
+</HeadContent>
+
+<RadzenLayout>
+    <RadzenHeader Style="align-content:center">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+            <AuthorizeView>
+                <Authorized>
+                    <RadzenSidebarToggle class="custom-button" Click="DrawerToggle" />
+                </Authorized>
+            </AuthorizeView>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" class="align-right" Gap="5">
+                <AuthorizeView>
+                    <Authorized>
+                        <RadzenProfileMenu>
+                            <Template>
+                                <RadzenImage Path="educa-logo.png" class="rz-gravatar"/>
+                            </Template>
+                            <ChildContent>
+                                <RadzenText class="px-3 m-auto mb-2" TextStyle="TextStyle.Subtitle1">
+                                    @context.User.Identity!.Name  @context.User.Claims.FirstOrDefault(c => c.Type == "SurName")?.Value
+                                </RadzenText>
+                                <RadzenProfileMenuItem Text="Çıkış Yap" Path="logout" Icon="logout"></RadzenProfileMenuItem>
+                            </ChildContent>
+                        </RadzenProfileMenu>
+                    </Authorized>
+                    <NotAuthorized>
+                        @* <RadzenButton ButtonStyle="ButtonStyle.Base" Text="Giriş Yap" href="/login">
+                        </RadzenButton> *@
+                    </NotAuthorized>
+                </AuthorizeView>
+                <RadzenAppearanceToggle ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" class="appereance-button" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenHeader>
+    <AuthorizeView>
+        <Authorized>
+            <RadzenSidebar @bind-Expanded="@_drawerOpen">
+                <RadzenPanelMenu>
+                    <RadzenPanelMenuItem Text="Ana Sayfa" Icon="home" Path="/" />
+                    <div class="rz-p-3" style="font-size:0.75rem; color:#aba8b1">
+                        Genel
+                    </div>
+                    @*                     <RadzenPanelMenuItem Text="Upload Test" Icon="upload" Path="/document" />*@
+                    <RadzenPanelMenuItem Text="Karşılama Sayfası" Icon="clarify" Path="/landingpage" /> 
+                    <RadzenPanelMenuItem Text="Proje Yönetimi" Icon="domain" Path="/projects" />
+                    <RadzenPanelMenuItem Text="Çözüm Yönetimi" Icon="lightbulb_2" Path="/solutions" />
+                    <RadzenPanelMenuItem Text="Başvuru Yönetimi" Icon="article_person" Path="/career" />
+                    <RadzenPanelMenuItem Text="Takım Yönetimi" Icon="groups" Path="/team" />
+                    <RadzenPanelMenuItem Text="Döküman Yönetimi" Icon="edit_document" Path="/documents" />
+                    <AuthorizeView Roles="Admin" Context="innerContext">
+                        <div class="rz-p-3" style="font-size:0.75rem; color:#aba8b1">
+                            Sistem
+                        </div>
+@*                         <RadzenPanelMenuItem Text="Kullanıcı Yönetimi" Icon="manage_accounts" Path="/usermanagement" />
+ *@                        <RadzenPanelMenuItem Text="Sistemsel Ayarlar" Icon="settings" Path="/systemmanagement" />
+                    </AuthorizeView>
+@*                     <div class="rz-p-3" style="font-size:0.75rem; color:#aba8b1">
+                        Test
+                    </div>
+                    <RadzenPanelMenuItem Text="admin" Icon="settings" Path="/admin" />
+                    <RadzenPanelMenuItem Text="user" Icon="settings" Path="/user" /> *@
+
+                </RadzenPanelMenu>
+            </RadzenSidebar>
+        </Authorized>
+    </AuthorizeView>
+    <RadzenBody>
+        <div class="rz-p-4">
+            @Body
+        </div>
+    </RadzenBody>
+</RadzenLayout>
+<RadzenComponents />
+
+<style>
+    .custom-button:hover{
+        transition: all .25s ease;
+    }
+
+    .custom-button {
+        transition: all .25s ease;
+    }
+
+    .appereance-button {
+        transition: all .25s ease;
+/*         margin-left:auto;
+ */        margin-right:15px;
+    }
+
+    .align-right {
+        margin-left: auto;
+        margin-right: 15px;
+    }
+</style>
+
+@code {
+    private IDisposable? locationChangingHandler;
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; }
+    bool _drawerOpen = true;
+    [CascadingParameter(Name = "RouteData")]
+    public RouteData? RouteData { get; set; }
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    // protected override void OnParametersSet()
+    // {
+
+    // }
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            locationChangingHandler = Navigation.RegisterLocationChangingHandler(LocationChangingHandler);
+        }
+    }
+
+    private async ValueTask LocationChangingHandler(LocationChangingContext context)
+    {
+        string routepath = GetRoutePath(context.TargetLocation);
+        if (routepath == "login")
+        {
+            var authState = await AuthenticationState;
+            var user = authState.User;
+
+            if (user.Identity != null && user.Identity.IsAuthenticated)
+            {
+                ToastService.ShowWarning("Zaten giriş yaptınız!");
+                context.PreventNavigation();
+            }
+        }
+        return;
+
+    }
+
+    private string GetRoutePath(string url)
+    {
+        var uri = new Uri(url);
+        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        return segments.Length > 0 ? segments[0] : string.Empty;
+    }
+
+    public void Dispose()
+    {
+        locationChangingHandler?.Dispose();
+    }
+
+}

@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+@* <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Web.UI.styles.css" asp-append-version="true" />
+</head> *@
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>@ViewData["Title"]</title>
+    <link href="~/simple-admin/assets/vendor/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+    <link href="~/simple-admin/assets/vendor/fontawesome/css/solid.min.css" rel="stylesheet">
+    <link href="~/simple-admin/assets/vendor/fontawesome/css/brands.min.css" rel="stylesheet">
+    <link href="~/simple-admin/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/simple-admin/assets/css/master.css" rel="stylesheet">
+    <link href="~/simple-admin/assets/vendor/flagiconcss/css/flag-icon.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/devextreme-dist@23.2.6/css/dx.light.css" />
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/devextreme-dist@23.2.6/js/dx.all.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <nav id="sidebar">
+            <div class="sidebar-header text-center">
+                <img src="~/simple-admin/assets/img/tls-logo.png" alt="bootraper logo" style="max-height:42px"class="app-logo">
+            </div>
+            <ul class="list-unstyled components text-secondary">
+                <li>
+                    <a asp-controller="Home" asp-action="Index"><i class="fas fa-home"></i> Ana Sayfa</a>
+                </li>
+                <li>
+                    <a asp-controller="Orders" asp-action="Index"><i class="fas fa-clipboard-list"></i> Sipariş Yönetimi</a>
+                </li>
+                <li>
+                    <a asp-controller="Customer" asp-action="Index"><i class="fas fa-user-edit"></i> Müşteri Yönetimi</a>
+                </li>
+                <li>
+                    <a asp-controller="Stock" asp-action="Index"><i class="fas fa-boxes"></i> Stok Yönetimi</a>
+                </li>
+                @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator"))
+                {
+                    <li>
+                        <a asp-controller="CustomerAddress" asp-action="Index"><i class="fas fa-map-marked-alt"></i> Müşteri Adres Yönetimi</a>
+                    </li>
+                }
+
+            </ul>
+        </nav>
+
+        <div id="body" >
+            <!-- navbar navigation component -->
+            <nav class="navbar navbar-expand-lg navbar-white bg-white">
+                <button type="button" id="sidebarCollapse" class="btn btn-light">
+                    <i class="fas fa-bars"></i><span></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="nav navbar-nav ms-auto">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+
+                            <li class="nav-item dropdown">
+                                <div class="nav-dropdown">
+                                    <a href="#" id="nav2" class="nav-item nav-link dropdown-toggle text-secondary" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-user"></i> <span>@User.Identity.Name @User.Claims.FirstOrDefault(c => c.Type == "SurName")?.Value</span> <i style="font-size: .8em;" class="fas fa-caret-down"></i>
+                                    </a>
+                                    <div class="dropdown-menu dropdown-menu-end nav-link-menu">
+                                        <ul class="nav-list">
+                                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                            <li><button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</button></li>
+                                            </form>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+
+                    </ul>
+                </div>
+            </nav>
+            <!-- end of navbar navigation -->
+            <div class="content">
+                <div class="container">
+                    @RenderBody()
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - Yakup İçer - Made with love & a lot of effort <i class="fa fa-heartbeat p-1" style="color:crimson"></i>
+        </div>
+    </footer>
+    <script src="~/simple-admin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/simple-admin/assets/vendor/chartsjs/Chart.min.js"></script>
+    <script src="~/simple-admin/assets/js/script.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+
+    <script>
+        //global ajax error handle islemleri
+        $(document).ajaxError(function (e, xhr) {
+            if (xhr.status === 401) {
+                location = '/Account/Login?returnUrl=' + encodeURIComponent(location.pathname + location.search);
+                return;
+            }
+            if (xhr.status === 403) {
+                DevExpress.ui.notify('Bu işlem için yetkiniz yok.', 'error', 3000);
+                return;
+            }
+            if (xhr.status === 400) {
+                const msg = (xhr.responseText || '').toLowerCase().includes('antiforgery')
+                    ? 'Oturum doğrulama süresi doldu. Lütfen tekrar giriş yapın.'
+                    : 'Geçersiz istek. Lütfen tekrar deneyin.';
+                DevExpress.ui.notify(msg, 'error', 3000);
+                setTimeout(() => location = '/Account/Login?returnUrl=' +
+                    encodeURIComponent(location.pathname + location.search), 1500);
+                return;
+            }
+            if (xhr.status >= 500) {
+                DevExpress.ui.notify('Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.', 'error', 3000);
+            }
+        });
+    </script>
+</body>
+</html>

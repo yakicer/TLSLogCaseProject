@@ -1,0 +1,674 @@
+﻿@{
+    ViewData["Title"] = "Müşteri Yönetimi";
+}
+
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Müşteri Yönetimi</h3>
+        <div>
+            <button class="btn btn-primary" id="btnAdd">+ Yeni Müşteri</button>
+            <div class="form-check form-switch form-check-inline ms-3">
+                <input class="form-check-input" type="checkbox" id="chkActives" >
+                <label class="form-check-label" for="NewIsActiveAddress">Sadece aktifleri getir</label>
+            </div>
+        </div>
+    </div>
+    <div id="grid"></div>
+</div>
+
+<hr />
+
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="addCustomerForm" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Müşteri Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Müşteri Adı Soyadı</label>
+                    <input class="form-control" id="NewCustomerName" name="CustomerName" required />
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" id="NewIsActive" name="IsActive" type="checkbox" checked>
+                    <label class="form-check-label" for="NewIsActive">Aktiflik</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">İptal</button>
+                <button class="btn btn-primary" type="submit">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <form id="updateCustomerForm" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Müşteri Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="editTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="customer-tab" data-bs-toggle="tab" data-bs-target="#customer-pane" type="button" role="tab">Müşteri Bilgileri</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="addresses-tab" data-bs-toggle="tab" data-bs-target="#addresses-pane" type="button" role="tab">Adres Yönetimi</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content pt-3" id="editTabsContent">
+
+                    <div class="tab-pane fade show active" id="customer-pane" role="tabpanel">
+                        <input type="hidden" id="Id" name="Id" />
+                        <div class="mb-3">
+                            <label class="form-label">Müşteri Adı Soyadı</label>
+                            <input class="form-control" id="CustomerName" name="CustomerName" required />
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" id="IsActive" name="IsActive" type="checkbox">
+                            <label class="form-check-label" for="IsActive">Aktiflik</label>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="addresses-pane" role="tabpanel">
+                        <h6 class="border-bottom pb-2 mb-3">Mevcut Adresler</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="addressesTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:120px">Tip</th>
+                                        <th style="width:150px">Şehir / İlçe</th>
+                                        <th>Adres Detayı</th>
+                                        <th style="width:150px">Telefon</th>
+                                        <th style="width:200px">Email</th>
+                                        <th style="width:120px">Aktiflik</th>
+                                        <th style="width:150px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h6 class="border-bottom pb-2 mb-3 mt-4">Yeni Adres Ekle</h6>
+                        <div id="newAddressForm" class="p-3 border rounded bg-light">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" id="NewAddressCustomerId" name="CustomerId" />
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label form-label-sm">Adres Tipi</label>
+                                    <select class="form-select form-select-sm" id="NewAdresType" name="AdresType" required>
+                                        <option value="1">Teslimat Adresi</option>
+                                        <option value="2">Fatura Adresi</option>
+                                        <option value="3">Diğer</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label form-label-sm">Ülke</label>
+                                    <input class="form-control form-control-sm" id="NewCountry" name="Country" value="Türkiye" required />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label form-label-sm">Şehir</label>
+                                    <input class="form-control form-control-sm" id="NewCity" name="City" required />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label form-label-sm">İlçe</label>
+                                    <input class="form-control form-control-sm" id="NewTown" name="Town" required />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label form-label-sm">Detaylı Adres</label>
+                                    <textarea class="form-control form-control-sm" id="NewAddress" name="Address" rows="2" required></textarea>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label form-label-sm">E-posta</label>
+                                    <input type="email" class="form-control form-control-sm" id="NewEmail" name="Email" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label form-label-sm">Telefon</label>
+                                    <input class="form-control form-control-sm" id="NewPhone" name="Phone" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label form-label-sm">Posta Kodu</label>
+                                    <input class="form-control form-control-sm" id="NewPostalCode" name="PostalCode" />
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="NewIsActiveAddress" name="IsActive">
+                                    <label class="form-check-label" for="NewIsActiveAddress">Aktif adres</label>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button class="btn btn-sm btn-success" type="button" id="btnAddAddress"><i class="bi bi-plus-circle"></i> Yeni Adresi Ekle</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">İptal</button>
+                <button class="btn btn-primary" type="submit" id="btnUpdate">Müşteriyi Güncelle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="editAddressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="editAddressForm" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title">Adres Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="EditAddressId" name="Id" />
+                <input type="hidden" id="EditAddressCustomerId" name="CustomerId" />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Adres Tipi</label>
+                        <select class="form-select" id="EditAdresType" name="AdresType" required>
+                            <option value="1">Teslimat Adresi</option>
+                            <option value="2">Fatura Adresi</option>
+                            <option value="3">Diğer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ülke</label>
+                        <input class="form-control" id="EditCountry" name="Country" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Posta Kodu</label>
+                        <input class="form-control" id="EditPostalCode" name="PostalCode" />
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Şehir</label>
+                        <input class="form-control" id="EditCity" name="City" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">İlçe</label>
+                        <input class="form-control" id="EditTown" name="Town" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Telefon</label>
+                        <input class="form-control" id="EditPhone" name="Phone" />
+                    </div>
+                </div>
+
+                <div class="mb-3 mt-3">
+                    <label class="form-label">Detaylı Adres</label>
+                    <textarea class="form-control" id="EditAddress" name="Address" rows="3" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">E-posta</label>
+                    <input type="email" class="form-control" id="EditEmail" name="Email" />
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="EditIsActive" name="IsActive">
+                    <label class="form-check-label" for="EditIsActive">Aktif adres</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">İptal</button>
+                <button class="btn btn-primary" type="submit" id="btnSaveEditAddress">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true" id="loadingEditAddress"></span>
+                    Adresi Güncelle
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="modal fade" id="confirmDeleteAddressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i> Adresi Sil
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmDeleteAddressText" class="mb-0">
+                    Bu adresi silmek istediğinizden emin misiniz?
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="btnCancelDeleteAddress">
+                    Vazgeç
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDeleteAddress">
+                    <i class="bi bi-trash me-1"></i> Evet, Sil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="confirmDeleteCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i> Müşteriyi Sil
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmDeleteCustomerText" class="mb-0">
+                    Bu müşteriyi silmek istediğinizden emin misiniz?
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="btnCancelDeleteCustomer">
+                    Vazgeç
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDeleteCustomer">
+                    <i class="bi bi-trash me-1"></i> Evet, Sil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let grid, modalCustomer, modalEditAddress, isEdit = false;
+    let pendingDeleteAddressId = null;
+    let pendingDeleteCustomerId = null;
+    let modalConfirmDeleteAddress;
+    let modalConfirmDeleteCustomer;
+    // Adres Tipini çözme fonksiyonu
+    const addressTypeText = v => ({ 1: 'Teslimat Adresi', 2: 'Fatura Adresi', 3: 'Diğer' }[v] ?? 'Bilinmeyen');
+
+    $(function () {
+        // Modal değişkenlerini tanımla
+        modalCustomer = new bootstrap.Modal(document.getElementById('customerModal')); // musteri duzenleme modali
+        modalAddCustomer = new bootstrap.Modal(document.getElementById('addCustomerModal')); // ekleme modali
+        modalEditAddress = new bootstrap.Modal(document.getElementById('editAddressModal')); // adres duzenleme modali
+        modalConfirmDeleteAddress = new bootstrap.Modal(document.getElementById('confirmDeleteAddressModal'));
+        modalConfirmDeleteCustomer = new bootstrap.Modal(document.getElementById('confirmDeleteCustomerModal'));
+        loadGrid();
+
+        //silme icin de modal olusturdum alert hosuma gitmedi
+        $('#btnConfirmDeleteAddress').on('click', function () {
+            if (pendingDeleteAddressId && pendingDeleteCustomerId) {
+                deleteAddress(pendingDeleteAddressId, pendingDeleteCustomerId);
+            }
+            pendingDeleteAddressId = null;
+            pendingDeleteCustomerId = null;
+            modalConfirmDeleteAddress.hide();
+        });
+
+        $('#btnCancelDeleteAddress').on('click', function () {
+            pendingDeleteAddressId = null;
+            pendingDeleteCustomerId = null;
+        });
+
+        $('#btnConfirmDeleteCustomer').on('click', function () {
+            if (pendingDeleteCustomerId) {
+                deleteCustomer(pendingDeleteCustomerId);
+            }
+            pendingDeleteCustomerId = null;
+            modalConfirmDeleteCustomer.hide();
+        });
+
+        $('#btnCancelDeleteCustomer').on('click', function () {
+            pendingDeleteCustomerId = null;
+        });
+        //silme icin de modal olusturdum alert hosuma gitmedi
+
+        // musteri ekleme islemleri
+        $('#btnAdd').on('click', () => {
+            $('#addCustomerForm').trigger('reset');
+            $('#NewIsActive').prop('checked', true);
+            modalAddCustomer.show();
+        });
+
+        $('#chkActives').on('change', () => grid.refresh());
+
+        $('#addCustomerForm').on('submit', function (e) {
+            e.preventDefault();
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            const payload = {
+                CustomerName: $('#NewCustomerName').val(),
+                IsActive: $('#NewIsActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '@Url.Action("Create", "Customer")', // Sadece Create Action'ı
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: payload
+            }).done(res => {
+                if (res.success) {
+                    modalAddCustomer.hide(); // Başarılıysa ekleme modalını kapat
+                    grid.refresh();
+                    DevExpress.ui.notify(res.message || 'Müşteri başarıyla eklendi', 'success', 2000);
+                } else {
+                    DevExpress.ui.notify(res.message || 'Hata oluştu', 'error', 3000);
+                }
+            }).fail(() => DevExpress.ui.notify('Sunucu hatası (Müşteri Ekleme).', 'error', 3000));
+        });
+        // musteri ekleme islemleri
+
+        // adres ekleme islemleri (mevcut musteri uzerinden eklenebilir yaptim ki karisiklik olamsin)
+        $('#btnAddAddress').on('click', function (e) {
+            e.preventDefault();
+
+            const $form = $('#addCustomerForm');
+            const token = $('input[name="__RequestVerificationToken"]').val();
+            const customerId = Number($('#NewAddressCustomerId').val());
+            
+            const payload = {
+                CustomerId: customerId,
+                AdresType: Number($('#NewAdresType').val()),
+                Country: $('#NewCountry').val(),
+                City: $('#NewCity').val(),
+                Town: $('#NewTown').val(),
+                Address: $('#NewAddress').val(),
+                Email: $('#NewEmail').val(),
+                Phone: $('#NewPhone').val(),
+                PostalCode: $('#NewPostalCode').val(),
+                IsActive: $('#NewIsActiveAddress').is(':checked')
+            };
+
+            $.ajax({
+                url: '@Url.Action("AddAddress")',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: payload
+            }).done(res => {
+                if (res.success) {
+                    // reload page yerine musteri detayi yeniden cekiyorum
+                    reloadCustomerDetails(customerId);
+
+                    DevExpress.ui.notify(res.message || 'Adres başarıyla eklendi', 'success', 2000);
+
+                    $form.find('input[type="text"], textarea').val('');
+                    $('#NewAdresType').val('1');
+                } else {
+                    DevExpress.ui.notify(res.message || 'Hata oluştu', 'error', 3000);
+                }
+            }).fail(xhr => {
+                console.error('AddAddress hata detay:', xhr.status, xhr.responseText);
+                DevExpress.ui.notify('Sunucu hatası (Adres Ekleme).', 'error', 3000);
+            });
+        });
+        // adres ekleme islemleri (mevcut musteri uzerinden eklenebilir yaptim ki karisiklik olamsin)
+
+        // buda mevcut adresi duzenleme formu
+        $('#editAddressForm').on('submit', function (e) {
+            e.preventDefault();
+            submitEditAddress();
+        });
+        // buda mevcut adresi duzenleme formu
+
+    });
+
+
+    //grid yukle (tablo yani)
+
+    function loadGrid() {
+        grid = $("#grid").dxDataGrid({
+            height: 600,
+            showBorders: true,
+            columnAutoWidth: true,
+            remoteOperations: false,
+            keyExpr: "id",
+            dataSource: new DevExpress.data.CustomStore({
+                key: "id",
+                load: function () {
+                    const onlyActives = $('#chkActives').is(':checked');
+                    return $.getJSON('@Url.Action("List")', { onlyActives: onlyActives }).then(resp => {
+                        if (!resp.success) {
+                            DevExpress.ui.notify(resp.message || 'Load error', 'error', 3000);
+                            return [];
+                        }
+                        return resp.data;
+                    });
+                }
+            }),
+            columns: [
+                { dataField: "id", caption: "Müşteri ID", width: 80 },
+                { dataField: "customerName", caption: "Müşteri Ad Soyad" },
+                {
+                    dataField: "isActive",
+                    caption: "Aktiflik Durumu",
+                    width: 120,
+                    alignment: "center",
+                    dataType: "boolean",
+                    cellTemplate: function (cellElement, cellInfo) {
+                        const isActive = cellInfo.value;
+
+                        let badgeClass;
+                        let badgeText;
+
+                        if (isActive) {
+                            badgeClass = 'bg-success';
+                            badgeText = 'Aktif';
+                        } else {
+                            badgeClass = 'bg-danger';
+                            badgeText = 'Pasif';
+                        }
+                        $('<span>')
+                            .addClass('badge ' + badgeClass)
+                            .text(badgeText)
+                            .appendTo(cellElement);
+                    }
+                },
+                {
+                    caption: 'İşlemler',
+                    width: 100,
+                    alignment: 'center',
+                    cellTemplate: function (container, options) {
+                        const delBtn = $('<button>')
+                            .addClass('btn btn-sm btn-danger custom-delete-btn')
+                            .html('<i class="fa fa-trash me-1"></i> Sil')
+                            .on('click', function () {
+                                pendingDeleteCustomerId = options.data.id;
+                                modalConfirmDeleteCustomer.show();
+                            });
+
+                        $(container).append(delBtn);
+                    }
+                }
+            ],
+            paging: { pageSize: 10 },
+            pager: { showInfo: true },
+            hoverStateEnabled: true,
+            selection: { mode: "single" },
+
+            onRowDblClick: function (e) {
+                const id = e.data.id;
+                $.getJSON('@Url.Action("Detail", "Customer")', { id: id }).done(resp => {
+                    if (resp.success) {
+                        openEdit(resp.data);
+                    } else {
+                        DevExpress.ui.notify(resp.message || 'Müşteri bulunamadı.', 'error', 3000);
+                    }
+                });
+            },
+            toolbar: {
+                items: ["searchPanel"]
+            },
+            searchPanel: { visible: true, width: 240, placeholder: "Ara..." }
+        }).dxDataGrid("instance");
+    }
+
+    // modal açma ve verileri doldurma
+    function openEdit(customerDetailData) {
+        const d = customerDetailData;
+        $('#addresses-tab').removeClass('d-none');
+        $('#modalTitle').text('Müşteri Düzenle: ' + d.customerName);
+        $('#Id').val(d.id);
+        $('#CustomerName').val(d.customerName);
+        $('#IsActive').prop('checked', d.isActive);
+        $('#NewAddressCustomerId').val(d.id);
+
+        new bootstrap.Tab(document.getElementById('customer-tab')).show();
+        loadAddresses(d.id, d.addresses);
+
+        modalCustomer.show();
+    }
+
+    // adres listesi cekme fonksiyonu
+    function loadAddresses(customerId, addresses) {
+        const $tbody = $('#addressesTable tbody');
+        $tbody.empty();
+
+        if (!addresses || addresses.length === 0) {
+            $tbody.append('<tr><td colspan="5" class="text-center text-muted">Müşteriye ait adres bulunmamaktadır.</td></tr>');
+            return;
+        }
+
+        addresses.forEach(a => {
+            const $row = $(`
+                        <tr data-address-id="${a.id}">
+                            <td>${addressTypeText(a.adresType)}</td>
+                            <td>${a.city} / ${a.town}</td>
+                            <td>${a.address || ''}</td>
+                            <td>${a.phone || ''}</td>
+                            <td>${a.email || ''}</td>
+                            <td>${a.isActive ? " <span class='badge bg-success text-center'>Aktif</span>" : " <span class='badge bg-danger text-center'>Pasif</span>" || ''}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-info me-1 js-edit-address" data-address='${JSON.stringify(a)}'>Düzenle</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger js-delete-address" data-id="${a.id}"><i class="bi bi-trash"></i> Sil</button>
+                            </td>
+                        </tr>
+                    `);
+
+           
+            $row.find('.js-edit-address').on('click', function () {
+                const addressData = $(this).data('address');
+                openEditAddressModal(addressData, customerId);
+            });
+
+            
+            $row.find('.js-delete-address').on('click', function () {
+                pendingDeleteAddressId = $(this).data('id');
+                pendingDeleteCustomerId = customerId;
+
+                $('#confirmDeleteAddressText').text('Bu adresi silmek istediğinizden emin misiniz?');
+
+                modalConfirmDeleteAddress.show();
+            });
+
+            $tbody.append($row);
+        });
+    }
+
+    function openEditAddressModal(addressData, customerId) {
+        $('#EditAddressId').val(addressData.id);
+        $('#EditAddressCustomerId').val(customerId);
+        $('#EditAdresType').val(addressData.adresType);
+        $('#EditCountry').val(addressData.country || '');
+        $('#EditCity').val(addressData.city || '');
+        $('#EditTown').val(addressData.town || '');
+        $('#EditAddress').val(addressData.address || '');
+        $('#EditEmail').val(addressData.email || '');
+        $('#EditPhone').val(addressData.phone || '');
+        $('#EditPostalCode').val(addressData.postalCode || '');
+        $('#EditIsActive').prop('checked', addressData.isActive === true);
+
+        modalEditAddress.show();
+    }
+
+    function submitEditAddress() {
+        const $button = $('#btnSaveEditAddress');
+        const $loading = $('#loadingEditAddress');
+        const token = $('#editAddressForm input[name="__RequestVerificationToken"]').val();
+
+        $button.prop('disabled', true).addClass('disabled');
+        $loading.removeClass('d-none');
+
+        const customerId = Number($('#EditAddressCustomerId').val());
+        const payload = {
+            Id: Number($('#EditAddressId').val()),
+            CustomerId: customerId,
+            AdresType: Number($('#EditAdresType').val()),
+            Country: $('#EditCountry').val(),
+            City: $('#EditCity').val(),
+            Town: $('#EditTown').val(),
+            Address: $('#EditAddress').val(),
+            Email: $('#EditEmail').val(),
+            Phone: $('#EditPhone').val(),
+            PostalCode: $('#EditPostalCode').val(),
+            IsActive: $('#EditIsActive').is(':checked')
+        };
+
+        $.ajax({
+            url: '@Url.Action("Update", "CustomerAddress")',
+            method: 'POST',
+            headers: { 'RequestVerificationToken': token },
+            data: payload
+        }).done(res => {
+            if (res.success) {
+                modalEditAddress.hide();
+                DevExpress.ui.notify('Adres başarıyla güncellendi.', 'success', 2000);
+                reloadCustomerDetails(customerId);
+            } else {
+                DevExpress.ui.notify(res.message || 'Güncelleme hatası.', 'error', 4000);
+            }
+        }).fail(() => DevExpress.ui.notify('Sunucu hatası (Adres Güncelleme).', 'error', 3000))
+            .always(() => {
+                // Loading ve disable'ı kapat
+                $button.prop('disabled', false).removeClass('disabled');
+                $loading.addClass('d-none');
+            });
+    }
+
+    // adres silme fonksiyonu
+    function deleteAddress(addressId, customerId) {
+        const token = $('input[name="__RequestVerificationToken"]').val();
+        $.ajax({
+            url: '@Url.Action("Delete", "CustomerAddress")',
+            method: 'POST',
+            headers: { 'RequestVerificationToken': token },
+            data: { id: addressId }
+        }).done(res => {
+            if (res.success) {
+                DevExpress.ui.notify('Adres silindi.', 'success', 2000);
+                reloadCustomerDetails(customerId);
+            } else {
+                DevExpress.ui.notify(res.message || 'Silme başarısız.', 'error', 3000);
+            }
+        }).fail(() => DevExpress.ui.notify('Sunucu hatası (Adres Silme).', 'error', 3000));
+    }
+    // mustreri silme fonksiyonu
+    function deleteCustomer(customerId) {
+        const token = $('input[name="__RequestVerificationToken"]').val();
+        $.ajax({
+            url: '@Url.Action("Delete", "Customer")',
+            method: 'POST',
+            headers: { 'RequestVerificationToken': token },
+            data: { id: customerId }
+        }).done(res => {
+            if (res.success) {
+                grid.refresh();
+                DevExpress.ui.notify('Müşteri silindi.', 'success', 2000);
+            } else {
+                DevExpress.ui.notify(res.message || 'Silme başarısız.', 'error', 3000);
+            }
+        }).fail(() => DevExpress.ui.notify('Sunucu hatası (Müşteri Silme).', 'error', 3000));
+    }
+
+    // reload mantigi musteri datasini guncelleme sonrasi yine cekiyoruz
+    function reloadCustomerDetails(id) {
+        $.getJSON('@Url.Action("Detail", "Customer")', { id: id }).done(resp => {
+            if (resp.success) {
+                loadAddresses(id, resp.data.addresses);
+            }
+        });
+    }
+</script>

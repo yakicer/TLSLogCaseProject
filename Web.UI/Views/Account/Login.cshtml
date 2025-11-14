@@ -1,0 +1,174 @@
+﻿@using Web.UI.Models.ViewModels
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Giriş Yap";
+    Layout = null;
+}
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link href="~/simple-admin/assets/vendor/fontawesome/css/fontawesome.min.css" rel="stylesheet" />
+    <link href="~/simple-admin/assets/vendor/fontawesome/css/solid.min.css" rel="stylesheet" />
+    <link href="~/simple-admin/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/simple-admin/assets/css/auth.css" rel="stylesheet" />
+
+    <style>
+
+        .loading-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .55); 
+            display: none;
+            z-index: 1055;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(1px);
+        }
+
+            .loading-backdrop.show {
+                display: flex;
+            }
+
+        .loading-card {
+            background: #fff;
+            border-radius: .75rem;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,.18);
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+        }
+
+        .btn-spinner {
+            display: none;
+            margin-right: .5rem;
+            vertical-align: -2px;
+        }
+
+        .btn-loading .btn-spinner {
+            display: inline-block;
+        }
+
+        .password-toggle-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+            .password-toggle-container input[type="password"],
+            .password-toggle-container input[type="text"] {
+                width: 100%;
+                padding-right: 40px;
+                box-sizing: border-box;
+            }
+
+            .password-toggle-container .fa-eye,
+            .password-toggle-container .fa-eye-slash {
+                position: absolute;
+                right: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                cursor: pointer;
+                color: #999;
+            }
+            .password-toggle-container .fa-eye-slash {
+            }
+    </style>
+</head>
+<body>
+    <div id="globalLoading" class="loading-backdrop" aria-hidden="true">
+        <div class="loading-card">
+            <div class="spinner-border" role="status" aria-label="Yükleniyor"></div>
+            <div class="ms-2 fw-semibold">Giriş yapılıyor…</div>
+        </div>
+    </div>
+
+    <div class="wrapper">
+        <div class="auth-content">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <img class="brand" src="~/simple-admin/assets/img/tls-logo.png" alt="logo">
+                    </div>
+
+                    <h6 class="mb-3 text-muted">Giriş Yap</h6>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger text-start" role="alert">
+                            <strong>Giriş başarısız</strong>
+                            <div asp-validation-summary="All"></div>
+                        </div>
+                    }
+
+                    <form asp-action="Login" method="post" id="loginForm" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3 text-start">
+                            <label class="form-label">Email</label>
+                            <input asp-for="Email" class="form-control" autocomplete="username email" />
+                            <span class="text-danger" asp-validation-for="Email"></span>
+                        </div>
+
+                        <div class="mb-3 text-start">
+                            <label class="form-label">Şifre</label>
+                                <div class="password-toggle-container">
+                                    <input asp-for="Password" type="password" class="form-control" id="passwordInput" autocomplete="current-password">
+                                    <i class="fa fa-eye" id="togglePassword"></i>
+                                </div>
+                            <span class="text-danger" asp-validation-for="Password"></span>
+                        </div>
+
+                        <button id="btnLogin" class="btn btn-primary mb-4 w-100" type="submit">
+                            <span class="spinner-border spinner-border-sm btn-spinner" aria-hidden="true"></span>
+                            <span>Giriş Yap</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/simple-admin/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="~/simple-admin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const $form = $('#loginForm');
+            const $btn = $('#btnLogin');
+            const $overlay = $('#globalLoading');
+
+            $form.on('submit', function () {
+                $btn.addClass('btn-loading').attr('disabled', true);
+                $overlay.addClass('show');
+            });
+
+            window.addEventListener('unload', function () {
+                $overlay.removeClass('show');
+            });
+        })();
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function setupPasswordToggle(inputId, toggleId) {
+                const passwordInput = document.getElementById(inputId);
+                const toggleIcon = document.getElementById(toggleId);
+
+                if (passwordInput && toggleIcon) {
+                    toggleIcon.addEventListener('click', function () {
+                        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                        passwordInput.setAttribute('type', type);
+                        toggleIcon.classList.toggle('fa-eye');
+                        toggleIcon.classList.toggle('fa-eye-slash');
+                    });
+                }
+            }
+            setupPasswordToggle('passwordInput', 'togglePassword');
+            setupPasswordToggle('confirmPasswordInput', 'toggleConfirmPassword');
+        });
+    </script>
+</body>
+</html>

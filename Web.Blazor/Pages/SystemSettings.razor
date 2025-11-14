@@ -1,0 +1,318 @@
+﻿@page "/systemmanagement"
+@using System.Text.RegularExpressions
+@using Web.Blazor.Helpers.Extensions
+@using Web.Blazor.Models
+@using Web.Blazor.Models.RequestModel
+@using Web.Blazor.Pages.Components
+@using Web.Blazor.Services.ApiServices
+@inject ISystemManagementService SystemManagementService
+@inject IToastService ToastService
+@inherits BaseComponent
+@attribute [Authorize(Roles = "Admin")]
+
+<style>
+    .disabled-map {
+        filter: grayscale(100%);
+        pointer-events:none;
+    }
+</style>
+
+<PageTitle>Sistem Yönetimi</PageTitle>
+
+@if (isLoading)
+{
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="3" JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Style="margin: 2rem;color: lightgrey;text-align: center;">
+        <i style="font-size:36px; animation: rotation 700ms linear infinite" class="notranslate rzi" id="d4DUbQirfE" _bl_2837=""><!--!-->refresh</i>
+        <span>
+            Yükleniyor...
+        </span>
+    </RadzenStack>
+}
+else
+{
+    <RadzenTemplateForm Data="@systemSettingsModel" TItem="SystemSettingsModel" Submit="@(() => Submit(systemSettingsModel.Id))" InvalidSubmit="@(() => InvalidSubmit())">
+        <RadzenFieldset Text="Sistem Ayarları">
+            <RadzenRow Gap="2rem" class="rz-p-0 rz-p-lg-4">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenStack>
+                        <RadzenFieldset Text="Şirket Link Adresleri Bilgileri">
+                            <RadzenStack Gap="1rem">
+                                <RadzenRow AlignItems="AlignItems.Center">
+                                    <RadzenColumn Size="12" SizeMD="4">
+                                        <RadzenLabel Text="Şirket Twitter Adresi" Component="TwitterLink" />
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="12" SizeMD="8">
+                                        <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%; margin-top:2px" Name="TwitterLink" @bind-Value="systemSettingsModel.TwitterLink" />
+                                        <RadzenRequiredValidator Component="TwitterLink" Text="Twitter Adresi alanı zorunludur." />
+                                    </RadzenColumn>
+                                </RadzenRow>
+                                <RadzenRow AlignItems="AlignItems.Center">
+                                    <RadzenColumn Size="12" SizeMD="4">
+                                        <RadzenLabel Text="Şirket Instagram Adresi" Component="InstagramLink" />
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="12" SizeMD="8">
+                                        <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%;" Name="InstagramLink" @bind-Value="systemSettingsModel.InstagramLink" />
+                                        <RadzenRequiredValidator Component="InstagramLink" Text="Instagram Adresi alanı zorunludur." />
+                                    </RadzenColumn>
+                                </RadzenRow>
+                                <RadzenRow AlignItems="AlignItems.Center">
+                                    <RadzenColumn Size="12" SizeMD="4">
+                                        <RadzenLabel Text="Şirket LinkedIn Adresi" Component="LinkedInLink" />
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="12" SizeMD="8">
+                                        <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%;" Name="LinkedInLink" @bind-Value="systemSettingsModel.LinkedInLink" />
+                                        <RadzenRequiredValidator Component="LinkedInLink" Text="LinkedIn Adresi alanı zorunludur." />
+                                    </RadzenColumn>
+                                </RadzenRow>
+                                <RadzenRow AlignItems="AlignItems.Center">
+                                    <RadzenColumn Size="12" SizeMD="4">
+                                        <RadzenLabel Text="Şirket Mail Adresi" Component="MailUrl" />
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="12" SizeMD="8">
+                                        <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%;" Name="MailUrl" @bind-Value="systemSettingsModel.MailUrl" />
+                                        <RadzenRequiredValidator Component="MailUrl" Text="Mail Adresi alanı zorunludur." />
+                                    </RadzenColumn>
+                                </RadzenRow>
+                            </RadzenStack>
+                        </RadzenFieldset>
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFieldset Text="Şirket İletişim Bilgileri">
+                        <RadzenStack Gap="1rem">
+                            <RadzenRow AlignItems="AlignItems.Center">
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenLabel Text="Şirket İletişim Adresi" Component="ContactAddress" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="8">
+                                    <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%; margin-top:2px" Name="ContactAddress" @bind-Value="systemSettingsModel.ContactAddress" />
+                                    <RadzenRequiredValidator Component="ContactAddress" Text="İletişim Adresi alanı zorunludur." />
+                                </RadzenColumn>
+                            </RadzenRow>
+                            <RadzenRow AlignItems="AlignItems.Center">
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenLabel Text="Şirket İletişim Mail Adresi" Component="ContactEmail" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="8">
+                                    <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%;" Name="ContactEmail" @bind-Value="systemSettingsModel.ContactEmail" />
+                                    <RadzenRequiredValidator Component="ContactEmail" Text="İletişim Mail Adresi alanı zorunludur." />
+                                </RadzenColumn>
+                            </RadzenRow>
+                            <RadzenRow AlignItems="AlignItems.Center">
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenLabel Text="Şirket Birincil Telefon" Component="ContactPhone1" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="8">
+                                    <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%;" Name="ContactPhone1" @bind-Value="systemSettingsModel.ContactPhone1" />
+                                    <RadzenRequiredValidator Component="ContactPhone1" Text="Birincil Telefon alanı zorunludur." />
+                                </RadzenColumn>
+                            </RadzenRow>
+                            <RadzenRow AlignItems="AlignItems.Center">
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenLabel Text="Şirket İkincil Telefon" Component="ContactPhone2" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="8">
+                                    <RadzenTextBox Disabled="isFormDisabled" class="remove-border" Style="width: 100%;" Name="ContactPhone2" @bind-Value="systemSettingsModel.ContactPhone2" />
+                                    <RadzenRequiredValidator Component="ContactPhone2" Text="İkincil Telefon alanı zorunludur." />
+                                </RadzenColumn>
+                            </RadzenRow>
+                        </RadzenStack>
+                    </RadzenFieldset>
+                </RadzenColumn>
+                <RadzenColumn Size="12">
+                    <RadzenFieldset Text="Hakkında Sayfası">
+                        <RadzenHtmlEditor spellcheck="false" class="remove-border" Name="HtmlEditor" Disabled="isFormDisabled" @bind-Value=@systemSettingsModel.AboutSection style="height: 450px;margin-top:2px">
+                            <RadzenHtmlEditorSource />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorUndo />
+                            <RadzenHtmlEditorRedo />
+                            <RadzenHtmlEditorAlignLeft />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorBold />
+                            <RadzenHtmlEditorItalic />
+                            <RadzenHtmlEditorUnderline />
+                            <RadzenHtmlEditorStrikeThrough />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorAlignLeft />
+                            <RadzenHtmlEditorAlignCenter />
+                            <RadzenHtmlEditorAlignRight />
+                            <RadzenHtmlEditorJustify />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorIndent />
+                            <RadzenHtmlEditorOutdent />
+                            <RadzenHtmlEditorUnorderedList />
+                            <RadzenHtmlEditorOrderedList />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorColor />
+                            <RadzenHtmlEditorBackground />
+                            <RadzenHtmlEditorRemoveFormat />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorSubscript />
+                            <RadzenHtmlEditorSuperscript />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorLink />
+                            <RadzenHtmlEditorUnlink />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorImage />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorFontName>
+                                <RadzenHtmlEditorFontNameItem Text="Educa Font" Value="'Red Hat Display', sans-serif" />
+                                <RadzenHtmlEditorFontNameItem Text="Comfortaa" Value="'Comfortaa', sans-serif" />
+                                <RadzenHtmlEditorFontNameItem Text="Arial" Value="'Arial'" />
+                                <RadzenHtmlEditorFontNameItem Text="Georgia" Value="'Georgia'" />
+                                <RadzenHtmlEditorFontNameItem Text="Helvetica" Value="'Helvetica'" />
+                                <RadzenHtmlEditorFontNameItem Text="Monospace" Value="'Monospace'" />
+                                <RadzenHtmlEditorFontNameItem Text="Segoe UI" Value="'Segoe UI'" />
+                                <RadzenHtmlEditorFontNameItem Text="Tahoma" Value="'Tahoma'" />
+                                <RadzenHtmlEditorFontNameItem Text="Times New Roman" Value="'Times New Roman'" />
+                                <RadzenHtmlEditorFontNameItem Text="Verdana" Value="'Verdana'" />
+                            </RadzenHtmlEditorFontName>
+                            <RadzenHtmlEditorFontSize />
+                            <RadzenHtmlEditorFormatBlock />
+                        </RadzenHtmlEditor>
+                        <RadzenRequiredValidator Component="HtmlEditor" Text="Hakkında Sayfası alanı zorunludur." />
+                    </RadzenFieldset>
+                </RadzenColumn>
+                <RadzenColumn Size="12">
+                    <RadzenFieldset Text="Google Harita">
+                        <RadzenStack Gap="10">
+                            <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Start">
+                                <RadzenColumn Size="12">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceAround" Gap="5">
+                                        <RadzenLabel Text="Harita Kodu: " Component="MapHtmlCode" Style="text-wrap:nowrap" />
+                                        <RadzenTextBox Disabled="isFormDisabled" id="map-html-code" class="remove-border" Style="width: 85%; margin-top:2px" Name="MapHtmlCode" @bind-Value="systemSettingsModel.MapHtmlCode" />
+                                        <RadzenButton Disabled="isFormDisabled" Click="(args) => SetHtmlCode(systemSettingsModel.MapHtmlCode)" ButtonStyle="ButtonStyle.Info" Text="Yerleştir" style="font-size:12px; text-transform:capitalize" />
+                                    </RadzenStack>
+                                    <RadzenRequiredValidator Component="MapHtmlCode" Text="Harita Kodu alanı zorunludur." />
+                                    <RadzenRow class="mt-3 mb-3">
+                                        <RadzenText TextStyle="TextStyle.Caption">
+                                            *google haritalar üzerinden eklemek istediğiniz haritanın konumunu belirledikten sonra paylaş kısmında bulunan harita yerleştirme kodunu alıp yukarıdaki alana kopyalayınız ve ardından <strong>&quot;Yerleştir&quot;</strong> butonuna tıklayarak değişikliği kaydediniz.
+                                        </RadzenText>
+                                    </RadzenRow>
+                                </RadzenColumn>
+                            </RadzenRow>
+                            <RadzenRow>
+                                <RadzenColumn Size="12">
+                                    <iframe id="map-frame-field" class="@(isFormDisabled ? "disabled-map" : "")" src="@mapHtmlCode" style="width:inherit;height:450px;border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                </RadzenColumn>
+                            </RadzenRow>
+                        </RadzenStack>
+                    </RadzenFieldset>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenFieldset>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" class="rz-mt-8 rz-mb-4">
+            <RadzenButton ButtonType="ButtonType.Submit" Disabled="isFormDisabled" Size="ButtonSize.Medium" Icon="save" Text="Kaydet" />
+            <RadzenToggleButton Click=@(() => OnEditToggle()) Text="@(isFormDisabled ? "Düzenle" : "İptal" )" Icon="edit" ToggleIcon="edit_off"
+                                ButtonStyle="ButtonStyle.Info" ToggleButtonStyle="ButtonStyle.Base" Shade="Shade.Dark" ToggleShade="Shade.Dark" />
+        </RadzenStack>
+    </RadzenTemplateForm>
+
+}
+
+
+@code {
+    private SystemSettingsModel systemSettingsModel = new();
+    private SystemSettingsModel NotEditedModel = new();
+    private bool isLoading = false;
+    private string mapHtmlCode = string.Empty;
+    private Guid systemSettingsId = Guid.Empty;
+    private bool isFormDisabled = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        mapHtmlCode = systemSettingsModel.MapHtmlCode;
+        SetHtmlCode(mapHtmlCode);
+        systemSettingsId = systemSettingsModel.Id;
+        NotEditedModel = systemSettingsModel.Clone();
+    }
+
+    private void SetHtmlCode(string htmlInput)
+    {
+        string pattern = "src\\s*=\\s*\"([^\"]+)\"";
+        Match match = Regex.Match(htmlInput, pattern);
+
+        if (match.Success)
+        {
+            mapHtmlCode = match.Groups[1].Value;
+        }
+        else
+        {
+            ToastService.ShowError("Hatalı giriş ! Lütfen girdiğiniz harita kodunu kontrol ederek tekrar deneyiniz.");
+        }
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            systemSettingsModel = await SystemManagementService.GetDefaultSettings();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        isLoading = false;
+    }
+
+    private void OnEditToggle()
+    {
+        isFormDisabled = !isFormDisabled;
+        if (isFormDisabled)
+        {
+            systemSettingsModel = NotEditedModel.Clone();
+            mapHtmlCode = systemSettingsModel.MapHtmlCode;
+            SetHtmlCode(mapHtmlCode);
+        }
+    }
+
+    private void InvalidSubmit()
+    {
+        ToastService.ShowError("Eksik veya hatalı alanlar mevcut. Lütfen kontrol edip tekrar deneyiniz.");
+    }
+
+    private async Task Submit(Guid id)
+    {
+        base.ShowLoader();
+
+        try
+        {
+            using var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(systemSettingsModel.AboutSection ?? ""), "AboutSection");
+            formData.Add(new StringContent(systemSettingsModel.TwitterLink ?? ""), "TwitterLink");
+            formData.Add(new StringContent(systemSettingsModel.InstagramLink ?? ""), "InstagramLink");
+            formData.Add(new StringContent(systemSettingsModel.LinkedInLink ?? ""), "LinkedInLink");
+            formData.Add(new StringContent(systemSettingsModel.MailUrl ?? ""), "MailUrl");
+            formData.Add(new StringContent(systemSettingsModel.MapHtmlCode ?? ""), "MapHtmlCode");
+            formData.Add(new StringContent(systemSettingsModel.ContactAddress ?? ""), "ContactAddress");
+            formData.Add(new StringContent(systemSettingsModel.ContactPhone1 ?? ""), "ContactPhone1");
+            formData.Add(new StringContent(systemSettingsModel.ContactPhone2 ?? ""), "ContactPhone2");
+            formData.Add(new StringContent(systemSettingsModel.ContactEmail ?? ""), "ContactEmail");
+
+            var response = await SystemManagementService.UpdateSystemSettingsAsync(systemSettingsId, formData);
+            if (!response.IsSuccessStatusCode)
+            {
+                base.HideLoader();
+                string errorMessage = response.ReasonPhrase!;
+                ToastService.ShowError(errorMessage);
+                return;
+            }
+            else
+            {
+                ToastService.ShowSuccess("Sistem ayarları başarıyla güncellendi!");
+                isFormDisabled = true;
+                NotEditedModel = systemSettingsModel.Clone();
+                base.HideLoader();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            base.HideLoader();
+            ToastService.ShowError(ex.Message);
+        }
+    }
+
+}

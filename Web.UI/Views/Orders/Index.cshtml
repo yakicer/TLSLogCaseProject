@@ -1,0 +1,620 @@
+﻿@{
+    ViewData["Title"] = "Sipariş Yönetimi";
+}
+
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Sipariş Yönetimi</h3>
+        <div class="d-flex align-items-center">
+            <button class="btn btn-primary" id="btnAdd">+ Yeni Sipariş</button>
+            <div class="form-check form-switch form-check-inline ms-3">
+                <input class="form-check-input" type="checkbox" id="chkActives">
+                <label class="form-check-label" for="NewIsActiveAddress">Sadece aktifleri getir</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="grid"></div>
+    <hr class="my-4" />
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <strong>Minimum sipariş adedi</strong>
+                    <div>
+                        <input type="number" id="minQtyInput" class="form-control form-control-sm d-inline-block" style="width:140px" value="1" />
+                        <button class="btn btn-sm btn-outline-primary ms-2" id="btnLoadMinQty">Getir</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="gridMinQty"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <strong class="flex-fill">Şehre göre sipariş adedi</strong>
+                    <div class="d-flex align-items-center justify-content-end flex-fill">
+                        <input type="text" id="cityInput" class="form-control form-control-sm d-inline-block" style="width:120px" value="Istanbul" />
+                        <button class="btn btn-sm btn-outline-primary ms-2" id="btnLoadCity">Getir</button>
+                    </div>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div class="text-center">
+                        <div class="fs-1 fw-bold" id="cityCountValue">—</div>
+                        <div class="text-muted" id="cityCountLabel">Şehre ait sipariş</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- create ve update modal -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="orderForm" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Yeni Sipariş</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="Id" name="Id" value="0" />
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Sipariş No</label>
+                        <input class="form-control" id="OrderNo" name="OrderNo" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Müşteri</label>
+                        <select id="CustomerId" name="CustomerId" class="form-select">
+                            <option value="">— Müşteri Seçiniz —</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Vergi (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="Tax" name="Tax" value="0" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Teslimat Adresi</label>
+                        <select id="DeliveryAddressId" name="DeliveryAddressId" class="form-select">
+                            <option value="">— Teslimat adresi seçiniz —</option>
+                        </select>
+                        <div class="form-text">Seçili müşteri için adresler otomatik dolar.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fatura Adresi</label>
+                        <select id="InvoiceAddressId" name="InvoiceAddressId" class="form-select">
+                            <option value="">— Fatura Adresi Seçiniz —</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Sipariş Durumu</label>
+                        <select id="Status" name="Status" class="form-select">
+                            <option value="0">Sipariş İptal Edildi</option>
+                            <option value="1">Sipariş Teslim Edildi</option>
+                            <option value="2">Sipariş İşlemde</option>
+                            <option value="3">Sipariş Teslimatta</option>
+                            <option value="4">Sipariş İade Edildi</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="my-3" />
+                <div>
+                    <div class="d-flex justify-content-between">
+                        <h6 class="mb-2">Stok Kalemleri</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddLine">+ Kalem Ekle</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="linesTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:200px">Stok Adı</th>
+                                    <th style="width:200px">Adet</th>
+                                    <th style="width:140px">Birim Fiyat</th>
+                                    <th style="width:60px"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">İptal</button>
+                <button class="btn btn-primary" type="submit" id="btnSave">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Delete Confirm -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Siparişi Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Bu siparişi silmek istediğinize emin misiniz?
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let grid, modal, mdEdit, pendingDeleteId, isEdit = false;
+    const statusText = v => ({ 0: 'Sipariş İptal Edildi', 1: 'Sipariş Teslim Edildi', 2: 'Sipariş İşlemde', 3: 'Sipariş Teslimatta', 4: 'Sipariş İade Edildi' }[v] ?? v);
+    $(function () {
+        modal = new bootstrap.Modal(document.getElementById('orderModal'));
+        mdDelete = new bootstrap.Modal('#confirmDeleteModal');
+
+        loadGrid();
+
+        $('#btnAdd').on('click', openCreate);
+        $('#chkActives').on('change', () => grid.refresh());
+        $('#btnAddLine').on('click', addLineRow);
+
+        $('#orderForm').on('submit', function (e) {
+            e.preventDefault();
+            const token = $('input[name="__RequestVerificationToken"]').val();
+            const payload = collectForm();
+            const url = isEdit ? '@Url.Action("Update")' : '@Url.Action("Create")';
+
+            $.ajax({ url, method: 'POST', headers: { 'RequestVerificationToken': token }, data: payload })
+                .done(res => {
+                    if (res.success) { modal.hide(); grid.refresh(); DevExpress.ui.notify(res.message || 'Success', 'success', 2000); }
+                    else { DevExpress.ui.notify(res.message || 'Error', 'error', 3000); }
+                })
+                .fail(() => DevExpress.ui.notify('Server error', 'error', 3000));
+        });
+
+        $('#btnConfirmDelete').on('click', function () {
+            if (!pendingDeleteId) return;
+            const token = $('input[name="__RequestVerificationToken"]').val();
+            $.ajax({
+                url: '@Url.Action("Delete")',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: { id: pendingDeleteId }
+            }).done(res => {
+                mdDelete.hide(); pendingDeleteId = null;
+                if (res.success) { grid.refresh(); DevExpress.ui.notify(res.message || 'Silindi', 'success', 2000); }
+                else { DevExpress.ui.notify(res.message || 'Silme hatası', 'error', 3000); }
+            }).fail(() => DevExpress.ui.notify('Sunucu hatası', 'error', 3000));
+        });
+        $(document).ajaxError(function (e, xhr) {
+            if (xhr.status === 401) location = '/Account/Login?returnUrl=' + encodeURIComponent(location.pathname + location.search);
+            else if (xhr.status === 403) DevExpress.ui.notify('Bu işlem için yetkiniz yok.', 'error', 3000);
+        });
+    });
+
+    function loadGrid() {
+        grid = $("#grid").dxDataGrid({
+            height: 650, showBorders: true, columnAutoWidth: true, keyExpr: 'id',
+            dataSource: new DevExpress.data.CustomStore({
+                key: 'id',
+                load: function () {
+                    const onlyActives = $('#chkActives').is(':checked');
+                    return $.getJSON('@Url.Action("getAll")', { onlyActives }).then(resp => {
+                        if (!resp.success) { DevExpress.ui.notify(resp.message || 'Load error', 'error', 3000); return []; }
+                        return resp.data;
+                    });
+                }
+            }),
+            columns: [
+                { dataField: 'id', caption: 'Sipariş ID', width: 80 },
+                { dataField: 'orderNo', caption: 'Sipariş No', width: 160 },
+                { dataField: 'customerName', caption: 'Müşteri Adı' },
+                { dataField: 'status', caption: 'Durum', width: 140, calculateDisplayValue: r => statusText(r.status) },
+                { dataField: 'totalPrice', caption: 'Toplam Ücret (₺)', dataType: 'number', format: { type: 'fixedPoint', precision: 2 }, width: 120 },
+                { dataField: 'orderDate', caption: 'Sipariş Tarihi', dataType: 'date', width: 140 },
+                {
+                    caption: 'İşlemler',
+                    width: 100,
+                    alignment: 'center',
+                    cellTemplate: function (container, options) {
+                        const delBtn = $('<button>')
+                            .addClass('btn btn-sm btn-danger custom-delete-btn')
+                            .html('<i class="fa fa-trash me-1"></i> Sil')
+                            .on('click', function () {
+                                pendingDeleteId = options.data.id;
+                                mdDelete.show();
+                            });
+
+                        $(container).append(delBtn);
+                    }
+                }
+            ],
+            paging: { pageSize: 10 }, pager: { showInfo: true },
+            hoverStateEnabled: true, selection: { mode: 'single' },
+
+            masterDetail: {
+                enabled: true,
+                template: function (container, options) {
+                    const d = options.data, $w = $('<div class="p-2 w-100"></div>').appendTo(container);
+                    if (!d.lines || d.lines.length === 0) { $w.append('<em>Detay Bulunamadı</em>'); return; }
+                    const $t = $(`<table class="table table-sm"><thead><tr>
+              <th style="width:120px">Stok Id</th><th>Stock</th><th style="width:120px">Miktar</th><th style="width:140px">Birim Fiyat</th>
+            </tr></thead><tbody></tbody></table>`).appendTo($w);
+                    d.lines.forEach(l => {
+                        $t.find('tbody').append(`<tr>
+                <td>${l.stockId}</td><td>${l.stockName || ''}</td><td>${l.amount}</td>
+                <td>${(l.unitPrice ?? 0).toFixed?.(2) ?? l.unitPrice}</td>
+              </tr>`);
+                    });
+                }
+            },
+
+            onRowDblClick: function (e) {
+                $.getJSON('@Url.Action("Detail")', { id: e.data.id }).done(resp => {
+                    if (!resp.success) { DevExpress.ui.notify(resp.response || 'Not found', 'error', 3000); return; }
+                    openEdit(resp.data);
+                });
+            },
+
+            toolbar: {
+                items: ["searchPanel", {
+                    location: 'after', widget: 'dxButton', options: {
+                        text: 'Sipariş Durumu Güncelle',
+                        onClick: function () {
+                            const row = grid.getSelectedRowsData()[0];
+                            if (!row) { DevExpress.ui.notify('Lütfen bir sipariş seçiniz', 'warning', 2000); return; }
+                            showStatusPrompt(row.id, row.status);
+                        }
+                    }
+                }]
+            },
+
+            searchPanel: { visible: true, width: 240, placeholder: 'Search...' }
+        }).dxDataGrid("instance");
+    }
+
+    function openCreate() {
+        isEdit = false;
+        $('#modalTitle').text('Yeni Sipariş');
+        $('#Id').val(0); $('#OrderNo').val(''); $('#CustomerId').val(''); $('#Tax').val('0');
+        $('#DeliveryAddressId').val(''); $('#InvoiceAddressId').val(''); $('#Status').val('0');
+        $('#linesTable tbody').empty();
+
+        fillSelect($('#DeliveryAddressId'), [], null);
+        fillSelect($('#InvoiceAddressId'), [], null);
+        fillSelectForCreate($('#CustomerId'), [], null);
+
+        $('#linesTable tbody').empty();
+
+        loadCustomerAddressSelects(
+           null,
+            null,
+           null
+        );
+        loadCustomers(null);
+        $('#Status').val('0');
+
+        $('#linesTable tbody').empty();
+
+        fetchStocks()
+            .always(() => {
+                addLineRow(); 
+            });
+
+        modal.show();
+    }
+
+    function openEdit(d) {
+            isEdit = true;
+            $('#modalTitle').text('Sipariş Düzenle');
+
+            $('#Id').val(d.id);
+            $('#OrderNo').val(d.orderNo);
+            $('#CustomerId').val(d.customerId);
+            $('#Tax').val(d.tax ?? 0);
+            $('#Status').val(d.status);
+
+            fillSelect($('#DeliveryAddressId'), [], null);
+            fillSelect($('#InvoiceAddressId'), [], null);
+            fillSelectForCreate($('#CustomerId'), [], null);
+
+            $('#linesTable tbody').empty();
+
+            loadCustomerAddressSelects(
+                d.customerId,
+                d.deliveryAddressId ?? null,
+                d.invoiceAddressId ?? null
+            );
+            loadCustomers(d.customerId);
+
+            $('#linesTable tbody').empty();
+        fetchStocks()
+            .done(() => {
+                (d.lines || []).forEach(l => addLineRow(l.stockId, l.amount, l.unitPrice));
+                if (!d.lines || d.lines.length === 0) addLineRow();
+            })
+            .fail(() => {
+                (d.lines || []).forEach(l => addLineRow(l.stockId, l.amount, l.unitPrice));
+                if (!d.lines || d.lines.length === 0) addLineRow();
+            });
+
+            modal.show();
+        
+    }
+    // buraya totalprice ffalan da ekleyebilriim sonradan
+
+    function addLineRow(stockId = '', amount = '', unitPrice = '') {
+        unitPrice = (unitPrice || 0).toFixed?.(2);
+        const $tr = $(`
+                  <tr data-item-id="${stockId}">
+            <td>
+                      <select class="form-select form-select-sm js-stockSelect" data-index-id="${stockId}">
+                <option value="">Stok Seçiniz</option>
+              </select>
+            </td>
+            <td>
+              <input type="number" class="form-control form-control-sm js-amount" min="0" step="1" value="${amount}">
+            </td>
+            <td>
+              <span class="form-control form-control-sm js-unitPriceField">${unitPrice}</span>
+            </td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-danger js-del">&times;</button>
+            </td>
+          </tr>
+        `);
+
+        $tr.find('.js-del').on('click', () => $tr.remove());
+        $('#linesTable tbody').append($tr);
+
+        // selecti stok listesiyle doldur
+        const $select = $tr.find('.js-stockSelect');
+        if (_stocksCache) {
+            fillStockSelect($select, _stocksCache, stockId);
+        } else {
+            // cache yoksa getirip doldur
+            fetchStocks().done(list => fillStockSelect($select, list, stockId))
+                .fail(() => fillStockSelect($select, [], stockId));
+        }
+    }
+
+    function collectForm() {
+        const id = Number($('#Id').val());
+        const lines = [];
+
+        $('#linesTable tbody tr').each(function () {
+            const stockId = Number($(this).find('.js-stockSelect').val() || 0);
+            const amount = Number($(this).find('.js-amount').val() || 0);
+            if (stockId > 0 && amount > 0) {
+                lines.push({ stockId, amount });
+            }
+        });
+
+        return {
+            Id: id,
+            CustomerId: Number($('#CustomerId').val()),
+            OrderNo: $('#OrderNo').val(),
+            Tax: parseFloat($('#Tax').val() || '0'),
+            DeliveryAddressId: $('#DeliveryAddressId').val() ? Number($('#DeliveryAddressId').val()) : null,
+            InvoiceAddressId: $('#InvoiceAddressId').val() ? Number($('#InvoiceAddressId').val()) : null,
+            Status: Number($('#Status').val()),
+            Lines: lines
+        };
+    }
+
+    function showStatusPrompt(id, current) {
+        const map = [{ v: 0, t: 'Sipariş İptal Edildi' }, { v: 1, t: 'Sipariş Teslim Edildi' }, { v: 2, t: 'Sipariş İşlemde' }, { v: 3, t: 'Sipariş Teslimatta' }, { v: 4, t: 'Sipariş İade Edildi' }];
+        const sel = prompt(`New status? (current: ${statusText(current)})\n` + map.map(x => `${x.v} = ${x.t}`).join('\n'), current);
+        if (sel === null) return;
+        const token = $('input[name="__RequestVerificationToken"]').val();
+        $.ajax({ url: '@Url.Action("UpdateStatus")', method: 'POST', headers: { 'RequestVerificationToken': token }, data: { Id: id, Status: Number(sel) } })
+            .done(res => {
+                if (res.success) { grid.refresh(); DevExpress.ui.notify(res.message || 'Sipariş Durumu Başarıyla Güncellendi', 'success', 2000); }
+                else { DevExpress.ui.notify(res.message || 'Sipariş Durumu Güncellenirken Hata Oluştu', 'error', 3000); }
+            })
+            .fail(() => DevExpress.ui.notify('Server error', 'error', 3000));
+    }
+
+    let gridMinQty;
+
+    $(function () {
+
+        gridMinQty = $("#gridMinQty").dxDataGrid({
+            height: 360, showBorders: true, columnAutoWidth: true, keyExpr: 'orderId',
+            dataSource: [],
+            columns: [
+                { dataField: 'orderId', caption: 'Sipariş ID', width: 100 },
+                { dataField: 'orderNo', caption: 'Sipariş No', width: 160 },
+                { dataField: 'customerName', caption: 'Müşteri' },
+                { dataField: 'status', caption: 'Sipariş Durumu', dataType: 'number', width: 150, calculateDisplayValue: r => statusText(r.status) },
+                { dataField: 'totalPrice', caption: 'Toplam Ücret (₺)', dataType: 'number', format: { type: 'fixedPoint', precision: 2 }, width: 120 },
+                { dataField: 'orderDate', caption: 'Tarih', dataType: 'date', width: 140 }
+            ],
+            paging: { pageSize: 10 },
+            pager: { showInfo: true }
+        }).dxDataGrid("instance");
+
+        $('#btnLoadMinQty').on('click', loadMinQty);
+        $('#btnLoadCity').on('click', loadCityCount);
+    });
+
+    function loadMinQty() {
+        const min = Number($('#minQtyInput').val() || 1);
+        $.getJSON('@Url.Action("ByMinQuantity")', { minAmount: min }).done(resp => {
+            if (!resp.success) {
+                DevExpress.ui.notify(resp.message || 'Load error', 'error', 3000);
+                gridMinQty.option('dataSource', []);
+                return;
+            }
+            gridMinQty.option('dataSource', resp.data || []);
+        }).fail(() => DevExpress.ui.notify('Server error', 'error', 3000));
+    }
+    //sehir bazli sorgulama methodu
+    function loadCityCount() {
+        const city = ($('#cityInput').val() || '').trim();
+        if (!city) {
+            DevExpress.ui.notify('City is required', 'warning', 2000);
+            return;
+        }
+        $.getJSON('@Url.Action("CountByCity")', { city }).done(resp => {
+            if (!resp.success || !resp.data) {
+                DevExpress.ui.notify(resp.message || 'Load error', 'error', 3000);
+                $('#cityCountValue').text('—');
+                $('#cityCountLabel').text('Orders in ' + city);
+                return;
+            }
+            $('#cityCountValue').text(resp.data.orderCount ?? 0);
+            $('#cityCountLabel').text((resp.data.city || city) + ' şehrine ait sipariş sayısı');
+        }).fail(() => DevExpress.ui.notify('Server error', 'error', 3000));
+    }
+
+    let _stocksCache = null;
+    // listeden stok secimi icin ozel method
+    function fetchStocks() {
+        if (_stocksCache) {
+            return $.Deferred().resolve(_stocksCache).promise();
+        }
+        return $.getJSON('@Url.Action("List", "Stock")')
+            .then(resp => {
+                const list = (resp && resp.success) ? (resp.data || []) : [];
+                _stocksCache = list;
+                return list;
+            });
+    }
+
+    // Tek bir select içine stokları bas bide selectedid ata
+    function fillStockSelect($select, list, selectedId) {
+        $select.empty();
+        $select.append($('<option/>', { value: '', text: 'Stok Seçiniz' }));
+        list.forEach(s => {
+            $select.append($('<option/>', { value: String(s.id), text: s.stockName || (`#${s.id}`) }));
+        });
+
+        const hasSelected = selectedId !== null && selectedId !== undefined && selectedId !== '';
+        if (hasSelected) {
+            const val = String(selectedId);
+            // if ($select.find(`option[value="${val}"]`).length === 0) {
+            //     $select.append($('<option/>', { value: val, text: 'Stok bulunamadi???' }));
+            // }
+            $select.val(val).trigger('change');
+        }
+    }
+    //edit esnasinda musteri bilgisine gore adres cekme islemi
+    function fetchCustomerAddresses(customerId) {
+        if (!customerId || Number(customerId) <= 0) return $.Deferred().resolve([]).promise();
+        return $.getJSON('@Url.Action("GetAddresses", "Customer")', { customerId: customerId })
+            .then(resp => resp && resp.success ? (resp.data || []) : []);
+    }
+    //create icin tum musterileri cekme methodu
+    function fetchCustomersForCreate() {
+        $.Deferred().resolve([]).promise();
+        return $.getJSON('@Url.Action("List", "Customer")')
+            .then(resp => resp && resp.success ? (resp.data || []) : []);
+    }
+
+    // adresi birlestir
+    function addressText(a) {
+        const parts = [];
+        if (a.address) parts.push(a.address);
+        const loc = [a.town, a.city].filter(Boolean).join('/');
+        if (loc) parts.push(loc);
+        if (a.postalCode) parts.push('(' + a.postalCode + ')');
+        return parts.join(', ');
+    }
+
+    // selecte musteri adresleri atamasi yapma
+    function fillSelect($select, list, selectedId) {
+        $select.empty();
+        $select.append($('<option/>', { value: '', text: 'Adres Seçiniz' }));
+        list.forEach(a => {
+            $select.append(
+                $('<option/>', { value: a.id, text: addressText(a) })
+            );
+        });
+        if (selectedId) $select.val(String(selectedId));
+    }
+    //create e ozel musteri atamasi
+    function fillSelectForCreate($clist, list, customerId) {
+        $clist.empty();
+        $clist.append($('<option/>', { value: '', text: 'Müşteri Seçiniz' }));
+        list.forEach(a => {
+            $clist.append(
+                $('<option/>', { value: a.id, text: a.customerName })
+            );
+        });
+        if (customerId) $clist.val(String(customerId));
+    }
+    //musteri adresleri atama methodu
+    function loadCustomerAddressSelects(customerId, preselectDeliveryId = null, preselectInvoiceId = null) {
+        const $del = $('#DeliveryAddressId');
+        const $inv = $('#InvoiceAddressId');
+
+        fillSelect($del, [], null);
+        fillSelect($inv, [], null);
+
+        fetchCustomerAddresses(customerId)
+            .done(addresses => {
+                fillSelect($del, addresses, preselectDeliveryId);
+                fillSelect($inv, addresses, preselectInvoiceId);
+            })
+            .fail(() => {
+                DevExpress.ui.notify('Adresler yüklenemedi', 'error', 3000);
+                fillSelect($del, [], null);
+                fillSelect($inv, [], null);
+            });
+    }
+    //musteri datasi cekme methodu
+    function loadCustomers(selectedId) {
+        const $clist = $('#CustomerId');
+        fillSelectForCreate($clist, [], null);
+
+        fetchCustomersForCreate()
+            .done(customerList => {
+                fillSelectForCreate($clist, customerList, selectedId);
+            })
+            .fail(() => {
+                DevExpress.ui.notify('Müşteriler yüklenemedi', 'error', 3000);
+                fillSelectForCreate($clist, [], null);
+            });
+    }
+
+    //dinamik musteri secimi adres atamasi methodu
+    $(document).on('change', '#CustomerId', function () {
+        const cid = Number($(this).val() || 0);
+
+        fillSelect($('#DeliveryAddressId'), [], null);
+        fillSelect($('#InvoiceAddressId'), [], null);
+
+        if (cid > 0) {
+            loadCustomerAddressSelects(cid, null, null);
+        }
+    });
+    //dinamik stock secimi fiyat atamasi methodu
+    $(document).on('change', '.js-stockSelect', function () {
+        const $stockSelection = $(this);
+        const cid = Number($stockSelection.val() || 0);
+        const $closest = $stockSelection.closest('tr');
+        const $priceField = $closest.find('.js-unitPriceField');
+
+        if (cid > 0) {
+            var stockItem = _stocksCache.find(s => s.id === cid);
+
+            if (stockItem && stockItem.price !== undefined) {
+                $priceField.text(stockItem.price.toFixed(2));
+            } else {
+                $priceField.text('0.00');
+            }
+        } else {
+            $priceField.text('0.00');
+        }
+    });
+
+</script>

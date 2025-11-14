@@ -1,0 +1,35 @@
+﻿@{
+    ViewData["Title"] = "Yetkisiz Erişim";
+    Layout = null;
+}
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/simple-admin/assets/css/access-denied.css">
+
+</head>
+
+<body>
+    <div class="scene">
+        <div class="overlay"></div>
+        <div class="overlay"></div>
+        <div class="overlay"></div>
+        <div class="overlay"></div>
+        <span class="bg-403">403</span>
+        <div class="text">
+            <span class="hero-text"></span>
+            <span class="msg">Bu sayfaya <span>erişim yetkiniz</span> yoktur!</span>
+            <span class="support">
+                <span>Kayıp mı oldunuz?</span>
+                <a asp-controller="Home" asp-action="Index">Ana Sayfaya Dön</a>
+            </span>
+        </div>
+        <div class="lock"></div>
+    </div>
+
+</body>
+
+</html>

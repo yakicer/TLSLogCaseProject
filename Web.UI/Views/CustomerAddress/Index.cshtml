@@ -1,0 +1,418 @@
+﻿@{
+    ViewData["Title"] = "Adres Yönetimi";
+}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Müşteri Adresleri</h3>
+        <div class="d-flex align-items-center">
+            <button class="btn btn-primary" id="btnAdd">+ Yeni Adres</button>
+
+            <div class="form-check form-switch ms-3">
+                <input class="form-check-input" type="checkbox" id="chkActives" checked>
+                <label class="form-check-label" for="chkActives">Sadece aktifleri getir</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="grid"></div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="createForm" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Adres Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Müşteri</label>
+                        <select class="form-select" id="C_CustomerId" name="CustomerId" required>
+                            <option value="">— Müşteri Seçiniz —</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Adres Tipi</label>
+                        <select class="form-select" id="C_AdresType" name="AdresType" required>
+                            <option value="1">Teslimat</option>
+                            <option value="2">Fatura</option>
+                            <option value="3">Diğer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ülke</label>
+                        <input class="form-control" id="C_Country" name="Country" value="Türkiye" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Posta Kodu</label>
+                        <input class="form-control" id="C_PostalCode" name="PostalCode" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Şehir</label>
+                        <input class="form-control" id="C_City" name="City" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">İlçe</label>
+                        <input class="form-control" id="C_Town" name="Town" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Telefon</label>
+                        <input class="form-control" id="C_Phone" name="Phone" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Adres</label>
+                        <textarea class="form-control" id="C_Address" name="Address" rows="2" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">E-Posta</label>
+                        <input class="form-control" type="email" id="C_Email" name="Email" />
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="C_IsActive" checked>
+                            <label class="form-check-label" for="C_IsActive">Aktif</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">İptal</button>
+                <button class="btn btn-primary" type="submit">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="editForm" class="modal-content">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title">Adres Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="E_Id" name="Id" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Müşteri</label>
+                        <select class="form-select" id="E_CustomerId" name="CustomerId" required>
+                            <option value="">— Müşteri Seçiniz —</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Adres Tipi</label>
+                        <select class="form-select" id="E_AdresType" name="AdresType" required>
+                            <option value="1">Teslimat</option>
+                            <option value="2">Fatura</option>
+                            <option value="3">Diğer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ülke</label>
+                        <input class="form-control" id="E_Country" name="Country" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Posta Kodu</label>
+                        <input class="form-control" id="E_PostalCode" name="PostalCode" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Şehir</label>
+                        <input class="form-control" id="E_City" name="City" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">İlçe</label>
+                        <input class="form-control" id="E_Town" name="Town" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Telefon</label>
+                        <input class="form-control" id="E_Phone" name="Phone" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Adres</label>
+                        <textarea class="form-control" id="E_Address" name="Address" rows="2" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">E-Posta</label>
+                        <input class="form-control" type="email" id="E_Email" name="Email" />
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="E_IsActive" name="IsActive">
+                            <label class="form-check-label" for="E_IsActive">Aktif</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">İptal</button>
+                <button class="btn btn-primary" type="submit">Güncelle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Adresi Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Bu adresi silmek istediğinize emin misiniz?
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let grid, mdAdd, mdEdit, mdDelete, pendingDeleteId, _customersCache = null;
+
+    const addressTypeText = v => ({ 1: 'Teslimat', 2: 'Fatura', 3: 'Diğer' }[v] ?? v);
+
+    $(function () {
+        mdAdd = new bootstrap.Modal('#addModal');
+        mdEdit = new bootstrap.Modal('#editModal');
+        mdDelete = new bootstrap.Modal('#confirmDeleteModal');
+
+        loadGrid();
+
+        $('#btnAdd').on('click', () => {
+            $('#createForm').trigger('reset');
+            $('#C_IsActive').prop('checked', true);
+
+            // Müşteri select’ini temizle ve doldur (seçili yok)
+            const $cSel = $('#C_CustomerId');
+            fillCustomerSelect($cSel, [], null);
+
+            fetchCustomers()
+                .done(list => fillCustomerSelect($cSel, list, null))
+                .fail(() => fillCustomerSelect($cSel, [], null));
+
+            mdAdd.show();
+        });
+
+        $('#btnReload, #chkActives').on('click change', () => grid.refresh());
+
+        //createfrom islemleri
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+            const token = $('input[name="__RequestVerificationToken"]').val();
+            const payload = {
+                CustomerId: Number($('#C_CustomerId').val()),
+                AdresType: Number($('#C_AdresType').val()),
+                Country: $('#C_Country').val(),
+                City: $('#C_City').val(),
+                Town: $('#C_Town').val(),
+                Address: $('#C_Address').val(),
+                Email: $('#C_Email').val(),
+                Phone: $('#C_Phone').val(),
+                PostalCode: $('#C_PostalCode').val(),
+                IsActive: $('#C_IsActive').is(':checked')
+            };
+            $.ajax({
+                url: '@Url.Action("Create")',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: payload
+            }).done(res => {
+                if (res.success) {
+                    mdAdd.hide(); grid.refresh();
+                    DevExpress.ui.notify(res.message || 'Adres eklendi', 'success', 2000);
+                } else {
+                    DevExpress.ui.notify(res.message || 'Hata', 'error', 3000);
+                }
+            }).fail(() => DevExpress.ui.notify('Sunucu hatası', 'error', 3000));
+        });
+
+        //editform islemleri
+        $('#editForm').on('submit', function (e) {
+            e.preventDefault();
+            const token = $('#editForm input[name="__RequestVerificationToken"]').val();
+            const payload = {
+                Id: Number($('#E_Id').val()),
+                CustomerId: Number($('#E_CustomerId').val()),
+                AdresType: Number($('#E_AdresType').val()),
+                Country: $('#E_Country').val(),
+                City: $('#E_City').val(),
+                Town: $('#E_Town').val(),
+                Address: $('#E_Address').val(),
+                Email: $('#E_Email').val(),
+                Phone: $('#E_Phone').val(),
+                PostalCode: $('#E_PostalCode').val(),
+                IsActive: $('#E_IsActive').is(':checked')
+            };
+            $.ajax({
+                url: '@Url.Action("Update")',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: payload
+            }).done(res => {
+                if (res.success) {
+                    mdEdit.hide(); grid.refresh();
+                    DevExpress.ui.notify(res.message || 'Adres güncellendi', 'success', 2000);
+                } else {
+                    DevExpress.ui.notify(res.message || 'Güncelleme hatası', 'error', 3000);
+                }
+            }).fail(() => DevExpress.ui.notify('Sunucu hatası', 'error', 3000));
+        });
+
+        //delete confirm modal (devxtremein sundugu kotu gorunuyor)
+        $('#btnConfirmDelete').on('click', function () {
+            if (!pendingDeleteId) return;
+            const token = $('input[name="__RequestVerificationToken"]').val();
+            $.ajax({
+                url: '@Url.Action("Delete")',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: { id: pendingDeleteId }
+            }).done(res => {
+                mdDelete.hide(); pendingDeleteId = null;
+                if (res.success) { grid.refresh(); DevExpress.ui.notify(res.message || 'Silindi', 'success', 2000); }
+                else { DevExpress.ui.notify(res.message || 'Silme hatası', 'error', 3000); }
+            }).fail(() => DevExpress.ui.notify('Sunucu hatası', 'error', 3000));
+        });
+    });
+
+    //grid yukle
+    function loadGrid() {
+        grid = $("#grid").dxDataGrid({
+            height: 620, showBorders: true, columnAutoWidth: true, keyExpr: 'id',
+            dataSource: new DevExpress.data.CustomStore({
+                key: 'id',
+                load: function () {
+                    const onlyActives = $('#chkActives').is(':checked');
+                    const cid = Number($('#txtFilterCustomerId').val() || 0);
+                    const url = cid > 0
+                        ? '@Url.Action("ListByCustomer")' + '?customerId=' + cid + '&onlyActives=' + onlyActives
+                        : '@Url.Action("ListAllDetailed")' + '?onlyActives=' + onlyActives;
+
+                    return $.getJSON(url).then(resp => {
+                        if (!resp.success) { DevExpress.ui.notify(resp.message || 'Load error', 'error', 3000); return []; }
+                        return resp.data;
+                    });
+                }
+            }),
+            columns: [
+                { dataField: 'id', caption: 'ID', width: 50 },
+                { dataField: 'customerName', caption: 'Müşteri Adı'},
+                { dataField: 'adresType', caption: 'Adres Tipi', width: 120, calculateDisplayValue: r => addressTypeText(r.adresType) },
+                { dataField: 'city', caption: 'Şehir'},
+                { dataField: 'town', caption: 'İlçe'},
+                { dataField: 'address', caption: 'Adres' },
+                { dataField: 'phone', caption: 'Telefon'},
+                { dataField: 'email', caption: 'E-Posta'},
+                {
+                    dataField: "isActive",
+                    caption: "Aktiflik Durumu",
+                    width: 100,
+                    alignment: "center",
+                    dataType: "boolean",
+                    cellTemplate: function (cellElement, cellInfo) {
+                        const isActive = cellInfo.value;
+
+                        let badgeClass;
+                        let badgeText;
+
+                        if (isActive) {
+                            badgeClass = 'bg-success';
+                            badgeText = 'Aktif';
+                        } else {
+                            badgeClass = 'bg-danger';
+                            badgeText = 'Pasif';
+                        }
+                        $('<span>')
+                            .addClass('badge ' + badgeClass)
+                            .text(badgeText)
+                            .appendTo(cellElement);
+                    }
+                },
+                {
+                    caption: 'İşlemler',
+                    width: 100,
+                    alignment: 'center',
+                    cellTemplate: function (container, options) {
+                        const delBtn = $('<button>')
+                            .addClass('btn btn-sm btn-danger custom-delete-btn')
+                            .html('<i class="fa fa-trash me-1"></i> Sil')
+                            .on('click', function () {
+                                pendingDeleteId = options.data.id;
+                                mdDelete.show(); 
+                            });
+
+                        $(container).append(delBtn);
+                    }
+                }
+            ],
+            paging: { pageSize: 10 }, pager: { showInfo: true },
+            hoverStateEnabled: true,
+            selection: { mode: "single" },
+            searchPanel: { visible: true, placeholder: 'Ara...', width: 240 },
+            onRowDblClick: function (e) {
+                const id = e.data.id;
+                openEdit(id);
+            }
+        }).dxDataGrid('instance');
+    }
+
+    function openEdit(id) {
+        $.getJSON('@Url.Action("Detail")', { id }).done(resp => {
+            if (!resp.success) { DevExpress.ui.notify(resp.message || 'Bulunamadı', 'error', 3000); return; }
+            const d = resp.data;
+            $('#E_Id').val(d.id);
+            $('#E_CustomerId').val(d.customerId);
+            $('#E_AdresType').val(d.adresType);
+            $('#E_Country').val(d.country || '');
+            $('#E_City').val(d.city || '');
+            $('#E_Town').val(d.town || '');
+            $('#E_Address').val(d.address || '');
+            $('#E_Email').val(d.email || '');
+            $('#E_Phone').val(d.phone || '');
+            $('#E_PostalCode').val(d.postalCode || '');
+            $('#E_IsActive').prop('checked', !!d.isActive);
+
+            const $eSel = $('#E_CustomerId');
+            fillCustomerSelect($eSel, [], null);
+            fetchCustomers()
+                .done(list => fillCustomerSelect($eSel, list, d.customerId))
+                .fail(() => fillCustomerSelect($eSel, [], d.customerId));
+
+            mdEdit.show();
+        });
+    }
+    //mevcut musterileri cek
+    function fetchCustomers() {
+        if (_customersCache) {
+            return $.Deferred().resolve(_customersCache).promise();
+        }
+        return $.getJSON('@Url.Action("List", "Customer")')
+            .then(resp => {
+                const list = (resp && resp.success) ? (resp.data || []) : [];
+                _customersCache = list;
+                return list;
+            });
+    }
+    //musteri selectlerini doldur
+    function fillCustomerSelect($select, list, selectedId) {
+        $select.empty();
+        $select.append($('<option/>', { value: '', text: '— Müşteri Seçiniz —' }));
+        list.forEach(c => {
+            $select.append(
+                $('<option/>', { value: String(c.id), text: c.customerName || ('#' + c.id) })
+            );
+        });
+        if (selectedId !== null && selectedId !== undefined && selectedId !== '') {
+            $select.val(String(selectedId));
+        }
+    }
+</script>

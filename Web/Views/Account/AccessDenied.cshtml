@@ -1,0 +1,13 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    Layout = null;
+    List<string> roles = ViewBag.Roles;
+}
+<h1>Bu sayfaya erişiminiz bulunmamaktadır.</h1>
+<h4>Mevcut Rolleriniz</h4>
+@foreach (var role in roles)
+{
+    <p>@role</p>
+}

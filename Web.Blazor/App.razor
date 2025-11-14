@@ -1,0 +1,33 @@
+﻿@using Web.Blazor.Pages
+
+<ErrorComponent>
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <CascadingValue Name="RouteData" Value="routeData"></CascadingValue>
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                     <NotAuthorized>
+                        @{
+                            if (context.User.Identity!.IsAuthenticated)
+                            {
+                                <PageTitle>Yetkisiz Erişim</PageTitle>
+                                <h1> Bu sayfayi goruntuleme yetkiniz bulunmamaktadir! </h1>
+                            }
+                            else
+                            {
+                                <LoginRedirect />
+                            }
+                        }
+                 </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </Found>
+            <NotFound>
+                <PageTitle>Sayfa Bulunamadı</PageTitle>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p role="alert"> Aradığınız sayfa bulunamadı.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
+</ErrorComponent>

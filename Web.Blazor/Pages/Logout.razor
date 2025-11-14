@@ -1,0 +1,15 @@
+﻿@using Web.Blazor.Services.Interface
+
+@page "/logout"
+
+@inject IAuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        //I’ve gone with a page component to do this but I could also implement this on a button click somewhere. Try it later..
+        await AuthStateService.Logout();
+        NavigationManager.NavigateTo("/login");
+    }
+}
