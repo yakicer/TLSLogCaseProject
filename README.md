@@ -87,7 +87,8 @@ UI
 ### 2. appsettings Dosyaları
 **Web.UI/appsettings.json**
 **Web.API/appsettings.json**
- dosyalarını size iletmiş olduğum dosyalar ile değiştirin:
+ dosyalarını size iletmiş olduğum dosyalar ile değiştirin.
+**Not:** İletmiş olduğum dosyaların uzantıları *"appsettings.json.webui"* ve *"appsettings.json.webapi"* şeklinde olup, dosyaları aktarmadan önce uzantıları değiştirmeniz gerekmektedir.
 
 ### 3. Veritabanını Oluştur
 
@@ -173,24 +174,6 @@ Visual Studio’da:
 -   **Tüm controller sonuçları** `BaseResponse<T>` formatında döner
     
 
-
-
-## 🧠 Neler Öğretir / Mülakat İçin Neden Önemli
-
-Bu proje, bir full-stack .NET geliştiricinin üretim kalitesinde çözüm tasarlayabildiğini gösterir:
-
--   🔸 Temiz katmanlı mimari kurma becerisi
-    
--   🔸 API & UI arasında JWT + Cookie auth entegrasyonu
-    
--   🔸 EF Core LINQ sorgularında performans ve çevirilebilirlik
-    
--   🔸 MVC ile dinamik grid/modalların yönetimi
-    
--   🔸 Global hata yönetimi ve kullanıcı deneyimi odaklı düşünme
-    
--   🔸 Gerçek dünya senaryosunda Dashboard tasarımı ve veri modelleme
-    
 -----
 **Yakup İçer**  
 Software Developer  | Engineer
