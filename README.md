@@ -1,4 +1,5 @@
-# 🧩 Case Project – TLSLogistics Customer Order Management System (.NET 8 + MVC + API)
+# 🧩 Case Project – TLSLogistics Customer Order Management System 
+(.NET 8 + MVC + API)
 
 Bu proje, .NET 8 Web API ve ASP.NET MVC UI katmanlarından oluşan tam kapsamlı bir Customer–Order–Stock yönetim sistemidir.
 Proje, bir mülakat (case study) kapsamında geliştirilmiş olup; kurumsal mimari standartları, temiz kod prensipleri ve katmanlı yapı anlayışını yansıtır.
