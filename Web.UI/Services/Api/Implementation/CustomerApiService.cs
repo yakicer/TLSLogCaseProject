@@ -73,7 +73,7 @@ namespace Web.UI.Services.Api.Implementation
 
         public async Task<BaseResponse<List<CustomerOrderDto>>> GetOrdersByCustomerNameAsync(string customerName)
         {
-            var resp = await _http.GetAsync($"{_apiEndpoint}?orders-by-name={customerName.ToString().ToLower()}");
+            var resp = await _http.GetAsync($"{_apiEndpoint}/orders-by-name?name={customerName.ToString().ToLower()}");
             return await resp.Content.ReadFromJsonAsync<BaseResponse<List<CustomerOrderDto>>>()
                    ?? new BaseResponse<List<CustomerOrderDto>> { Success = false, Response = "Bağlantı hatası" };
         }

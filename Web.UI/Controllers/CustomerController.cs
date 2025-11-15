@@ -46,6 +46,14 @@ namespace Web.UI.Controllers
             return Json(new { success = true, data = resp.Data });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetOrdersByCustomer(string customerName)
+        {
+            var resp = await _api.GetOrdersByCustomerNameAsync(customerName);
+            if (!resp.Success) return Json(new { success = false, message = resp.Response });
+            return Json(new { success = true, data = resp.Data });
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> AddAddress(CustomerAddressCreateRequestDto dto)
         {

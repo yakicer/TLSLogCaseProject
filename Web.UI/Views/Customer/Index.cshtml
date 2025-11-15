@@ -67,14 +67,22 @@
                 <div class="tab-content pt-3" id="editTabsContent">
 
                     <div class="tab-pane fade show active" id="customer-pane" role="tabpanel">
-                        <input type="hidden" id="Id" name="Id" />
+                        <input type="hidden" id="CustomerUpdateId" name="Id" />
                         <div class="mb-3">
                             <label class="form-label">Müşteri Adı Soyadı</label>
-                            <input class="form-control" id="CustomerName" name="CustomerName" required />
+                            <input class="form-control" id="CustomerUpdateName" name="CustomerName" required />
                         </div>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" id="IsActive" name="IsActive" type="checkbox">
-                            <label class="form-check-label" for="IsActive">Aktiflik</label>
+                            <input class="form-check-input" id="CustomerUpdateIsActive" name="IsActive" type="checkbox">
+                            <label class="form-check-label" for="CustomerUpdateIsActive">Aktiflik</label>
+                        </div>
+                        <hr class="my-3" />
+                        <h6 class="mb-2">Müşteri Siparişleri</h6>
+                        <div id="gridCustomerOrders" class="w-100"></div>
+
+                        <div class="modal-footer p-0 pt-2">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">İptal</button>
+                            <button class="btn btn-primary" type="button" id="btnCustomerUpdate">Müşteriyi Güncelle</button>
                         </div>
                     </div>
 
@@ -150,11 +158,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">İptal</button>
-                <button class="btn btn-primary" type="submit" id="btnUpdate">Müşteriyi Güncelle</button>
             </div>
         </form>
     </div>
@@ -287,6 +290,14 @@
     let pendingDeleteCustomerId = null;
     let modalConfirmDeleteAddress;
     let modalConfirmDeleteCustomer;
+    let gridCustomerOrders;
+    const orderStatusText = v => ({
+        0: 'Sipariş İptal Edildi',
+        1: 'Sipariş Teslim Edildi',
+        2: 'Sipariş İşlemde',
+        3: 'Sipariş Teslimatta',
+        4: 'Sipariş İade Edildi'
+    }[v] ?? v);
     // Adres Tipini çözme fonksiyonu
     const addressTypeText = v => ({ 1: 'Teslimat Adresi', 2: 'Fatura Adresi', 3: 'Diğer' }[v] ?? 'Bilinmeyen');
 
@@ -511,14 +522,14 @@
         const d = customerDetailData;
         $('#addresses-tab').removeClass('d-none');
         $('#modalTitle').text('Müşteri Düzenle: ' + d.customerName);
-        $('#Id').val(d.id);
-        $('#CustomerName').val(d.customerName);
-        $('#IsActive').prop('checked', d.isActive);
+        $('#CustomerUpdateId').val(d.id);
+        $('#CustomerUpdateName').val(d.customerName);
+        $('#CustomerUpdateIsActive').prop('checked', d.isActive);
         $('#NewAddressCustomerId').val(d.id);
 
         new bootstrap.Tab(document.getElementById('customer-tab')).show();
         loadAddresses(d.id, d.addresses);
-
+        loadCustomerOrdersGrid(d.customerName);
         modalCustomer.show();
     }
 
@@ -663,6 +674,35 @@
         }).fail(() => DevExpress.ui.notify('Sunucu hatası (Müşteri Silme).', 'error', 3000));
     }
 
+
+    $(document).ready(function () {
+        $("#btnCustomerUpdate").click(function () {
+            const token = $('#editAddressForm input[name="__RequestVerificationToken"]').val();
+
+            const customerId = Number($('#CustomerUpdateId').val());
+            const payload = {
+                Id: customerId,
+                CustomerName: $('#CustomerUpdateName').val(),
+                IsActive: $('#CustomerUpdateIsActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '@Url.Action("Update", "Customer")',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: payload
+            }).done(res => {
+                if (res.success) {
+                    modalCustomer.hide();
+                    DevExpress.ui.notify('Müşteri başarıyla güncellendi.', 'success', 2000);
+                    loadGrid();
+                } else {
+                    DevExpress.ui.notify(res.message || 'Güncelleme hatası.', 'error', 4000);
+                }
+            }).fail(() => DevExpress.ui.notify('Sunucu hatası (Adres Güncelleme).', 'error', 3000));
+        });
+    });
+
     // reload mantigi musteri datasini guncelleme sonrasi yine cekiyoruz
     function reloadCustomerDetails(id) {
         $.getJSON('@Url.Action("Detail", "Customer")', { id: id }).done(resp => {
@@ -670,5 +710,99 @@
                 loadAddresses(id, resp.data.addresses);
             }
         });
+    }
+
+    function loadCustomerOrdersGrid(customerName) {
+        if (!customerName) return;
+
+        if (gridCustomerOrders) {
+            gridCustomerOrders.dispose();
+            $('#gridCustomerOrders').empty();
+            gridCustomerOrders = null;
+        }
+
+        gridCustomerOrders = $("#gridCustomerOrders").dxDataGrid({
+            height: 400,
+            showBorders: true,
+            columnAutoWidth: false,
+            remoteOperations: false,
+            keyExpr: 'orderId',
+            dataSource: new DevExpress.data.CustomStore({
+                key: 'orderId',
+                load: function () {
+
+                    return $.getJSON('@Url.Action("GetOrdersByCustomer", "Customer")', { customerName: customerName })
+                        .then(resp => {
+                            if (!resp.success) {
+                                DevExpress.ui.notify(resp.message || 'Siparişler yüklenemedi.', 'error', 3000);
+                                return [];
+                            }
+                            return resp.data
+                        })
+                        .fail(() => {
+                            DevExpress.ui.notify('Sunucu hatası (Müşteri siparişleri).', 'error', 3000);
+                            return [];
+                        });
+                }
+            }),
+            columns: [
+                { dataField: 'orderId', caption: 'Sipariş ID', width: 80 },
+                { dataField: 'orderNo', caption: 'Sipariş No', width: 160 },
+                { dataField: 'orderDate', caption: 'Sipariş Tarihi', dataType: 'date'},
+                {
+                    dataField: 'status',
+                    caption: 'Durum',
+                    calculateDisplayValue: r => orderStatusText(r.status)
+                },
+                {
+                    dataField: 'totalPrice',
+                    caption: 'Toplam Ücret (₺)',
+                    dataType: 'number',
+                    format: { type: 'fixedPoint', precision: 2 },
+                    width: 150
+                }
+            ],
+            paging: { pageSize: 10 },
+            pager: { showInfo: true },
+            hoverStateEnabled: true,
+            selection: { mode: 'single' },
+            masterDetail: {
+                enabled: true,
+                template: function (container, options) {
+                    const d = options.data;
+                    const $w = $('<div class="p-2 w-100"></div>').appendTo(container);
+
+                    if (!d.lines || d.lines.length === 0) {
+                        $w.append('<em>Bu sipariş için detay bulunamadı.</em>');
+                        return;
+                    }
+
+                    const $t = $(`
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width:120px">Stok ID</th>
+                                        <th>Stok Adı</th>
+                                        <th style="width:120px">Miktar</th>
+                                        <th style="width:140px">Birim Fiyat (₺)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>`).appendTo($w);
+
+                    d.lines.forEach(l => {
+                        $t.find('tbody').append(`
+                                <tr>
+                                    <td>${l.stockId}</td>
+                                    <td>${l.stockName || ''}</td>
+                                    <td>${l.amount}</td>
+                                    <td>${(l.unitPrice ?? 0).toFixed ? l.unitPrice.toFixed(2) : l.unitPrice}</td>
+                                </tr>`);
+                    });
+                }
+            },
+            toolbar: { items: ["searchPanel"] },
+            searchPanel: { visible: true, width: 240, placeholder: 'Sipariş ara...' }
+        }).dxDataGrid("instance");
     }
 </script>
